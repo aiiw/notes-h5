@@ -57,7 +57,13 @@ body{
 .accordion-title{flex:1;font-size:15px;font-weight:600}
 .accordion-icon{color:var(--text-secondary);font-size:11px;transition:transform .3s}
 .accordion-item.active .accordion-icon{transform:rotate(180deg)}
-.accordion-content{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.accordion-content{
+  display:grid;
+  grid-template-rows:0fr;
+  transition:grid-template-rows .35s ease;
+}
+.accordion-item.active .accordion-content{grid-template-rows:1fr}
+.accordion-content-clip{overflow:hidden;min-height:0}
 .accordion-inner{padding:0 14px 14px}
 .accordion-inner p{margin:8px 0}
 .subheading{font-size:15.5px;font-weight:700;color:var(--accent);margin:16px 0 6px;padding-top:6px;border-top:1px solid var(--border)}
