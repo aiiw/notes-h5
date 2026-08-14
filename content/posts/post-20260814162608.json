@@ -1,0 +1,71 @@
+{
+  "id": "post-20260814162608",
+  "title": "示例文章",
+  "intro": "一句话简介",
+  "updated": "2026-08-14T08:28:20.000Z",
+  "private": false,
+  "sections": [
+    {
+      "id": "s1",
+      "title": "第一节",
+      "badge": "1",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "这里写说明。"
+        },
+        {
+          "type": "code",
+          "text": "SELECT 1;"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "title": "第二节",
+      "badge": "2",
+      "blocks": [
+        {
+          "type": "ul",
+          "items": [
+            "要点 A",
+            "要点 B"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "title": "新章节",
+      "badge": "3",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "在这里写内容。"
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "title": "新章节",
+      "badge": "4",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "在这里写内容。"
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "title": "新章节",
+      "badge": "5",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "在这里写内容。"
+        }
+      ]
+    }
+  ]
+}
