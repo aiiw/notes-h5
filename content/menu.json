@@ -1,6 +1,11 @@
 {
   "siteTitle": "aiiw 笔记站",
-  "siteIntro": "手机友好的 H5 笔记站。支持折叠阅读、菜单搜索、Word/Excel 导入与私密加密文章。",
+  "siteIntro": "手机友好的 H5 笔记站。支持栏目分类、折叠阅读、菜单搜索、Word/Excel 导入与私密加密文章。",
+  "categories": [
+    { "id": "work", "name": "工作", "order": 1 },
+    { "id": "study", "name": "学习", "order": 2 },
+    { "id": "fun", "name": "娱乐", "order": 3 }
+  ],
   "items": [
     {
       "id": "welcome",
@@ -8,6 +13,7 @@
       "desc": "如何用管理后台发布与编辑内容",
       "updated": "2026-08-14",
       "enabled": true,
+      "category": "study",
       "order": 1
     },
     {
@@ -16,6 +22,7 @@
       "desc": "动态数组 / LAMBDA 常用写法（折叠阅读）",
       "updated": "2026-08-14",
       "enabled": true,
+      "category": "study",
       "order": 2
     },
     {
@@ -24,6 +31,7 @@
       "desc": "LAMBDA / MAP / SCAN / FILTER / XLOOKUP 等高阶动态数组",
       "updated": "2026-08-14",
       "enabled": true,
+      "category": "study",
       "order": 3
     },
     {
@@ -32,6 +40,7 @@
       "desc": "常用公式 + 数据透视表/透视图系统教程",
       "updated": "2026-08-14",
       "enabled": true,
+      "category": "study",
       "order": 4
     },
     {
@@ -40,6 +49,7 @@
       "desc": "基于点模脚本的 T-SQL 编程指南（21 主题 + DEMO）",
       "updated": "2026-08-14",
       "enabled": true,
+      "category": "work",
       "order": 5
     }
   ]
