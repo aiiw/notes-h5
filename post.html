@@ -20,15 +20,65 @@
   </div>
   <div class="container">
     <div class="intro-card" id="post-intro"></div>
+    <div id="lock-panel" class="lock-card hidden">
+      <div style="font-size:28px;margin-bottom:6px">🔒</div>
+      <div style="font-weight:700;margin-bottom:4px">私密内容</div>
+      <div class="muted" style="font-size:13px;margin-bottom:8px">请输入密码后查看正文</div>
+      <input id="lock-password" type="password" placeholder="输入访问密码" autocomplete="current-password" />
+      <button class="btn btn-primary" style="margin-top:8px;padding:8px 16px" onclick="unlockPost()">解锁阅读</button>
+      <div id="lock-status" class="status" style="margin-top:8px"></div>
+    </div>
     <div class="accordion" id="accordion"></div>
   </div>
   <button class="back-top" id="back-top" onclick="scrollToTop()">↑</button>
   <div class="footer" id="post-footer"></div>
+  <script src="assets/crypto.js"></script>
   <script src="assets/reader.js"></script>
   <script>
     function qs(name) {
       return new URLSearchParams(location.search).get(name);
     }
+    let currentPost = null;
+
+    function showLock(msg) {
+      document.getElementById('lock-panel').classList.remove('hidden');
+      document.getElementById('accordion').innerHTML = '';
+      if (msg) {
+        const el = document.getElementById('lock-status');
+        el.textContent = msg;
+        el.className = 'status err';
+      }
+    }
+
+    function showContent(post, sections, intro) {
+      document.getElementById('lock-panel').classList.add('hidden');
+      document.getElementById('post-intro').textContent = intro != null ? intro : (post.intro || '');
+      renderAccordion(sections || [], 'accordion');
+    }
+
+    async function unlockPost() {
+      const pwd = document.getElementById('lock-password').value;
+      const el = document.getElementById('lock-status');
+      if (!pwd) {
+        el.textContent = '请输入密码';
+        el.className = 'status err';
+        return;
+      }
+      try {
+        const payload = await NotesCrypto.decryptPayload(pwd, currentPost.enc);
+        NotesCrypto.rememberUnlock(currentPost.id, pwd);
+        showContent(currentPost, payload.sections, payload.intro != null ? payload.intro : currentPost.intro);
+        el.textContent = '';
+      } catch (e) {
+        el.textContent = e.message || '解锁失败';
+        el.className = 'status err';
+      }
+    }
+
+    document.getElementById('lock-password').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') unlockPost();
+    });
+
     async function boot() {
       const id = qs('id');
       if (!id) {
@@ -37,10 +87,26 @@
       }
       try {
         const post = await loadJSON('content/posts/' + id + '.json');
+        currentPost = post;
         document.title = post.title || id;
         document.getElementById('post-title').textContent = post.title || id;
-        document.getElementById('post-intro').textContent = post.intro || '';
         document.getElementById('post-footer').textContent = (post.updated ? ('更新：' + post.updated + ' · ') : '') + id;
+
+        if (post.private && post.enc) {
+          document.getElementById('post-intro').textContent = '此文为私密内容';
+          const remembered = NotesCrypto.getRemembered(id);
+          if (remembered) {
+            try {
+              const payload = await NotesCrypto.decryptPayload(remembered, post.enc);
+              showContent(post, payload.sections, payload.intro != null ? payload.intro : post.intro);
+              return;
+            } catch (e) {}
+          }
+          showLock();
+          return;
+        }
+
+        document.getElementById('post-intro').textContent = post.intro || '';
         renderAccordion(post.sections || [], 'accordion');
       } catch (e) {
         document.getElementById('post-title').textContent = '加载失败';
