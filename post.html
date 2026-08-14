@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>笔记</title>
+  <link rel="stylesheet" href="assets/theme.css" />
+</head>
+<body>
+  <header class="header">
+    <h1 id="post-title">加载中…</h1>
+    <div class="header-actions">
+      <button class="header-btn" id="search-toggle" onclick="toggleSearch()">🔍</button>
+      <button class="header-btn" id="theme-toggle" onclick="toggleTheme()">🌙</button>
+      <a class="header-btn" href="index.html" title="目录">☰</a>
+    </div>
+  </header>
+  <div class="search-box" id="search-box">
+    <input class="search-input" id="search-input" placeholder="搜索本节内容…" oninput="filterAccordion(this.value)" />
+  </div>
+  <div class="container">
+    <div class="intro-card" id="post-intro"></div>
+    <div class="accordion" id="accordion"></div>
+  </div>
+  <button class="back-top" id="back-top" onclick="scrollToTop()">↑</button>
+  <div class="footer" id="post-footer"></div>
+  <script src="assets/reader.js"></script>
+  <script>
+    function qs(name) {
+      return new URLSearchParams(location.search).get(name);
+    }
+    async function boot() {
+      const id = qs('id');
+      if (!id) {
+        document.getElementById('post-title').textContent = '缺少文章 id';
+        return;
+      }
+      try {
+        const post = await loadJSON('content/posts/' + id + '.json');
+        document.title = post.title || id;
+        document.getElementById('post-title').textContent = post.title || id;
+        document.getElementById('post-intro').textContent = post.intro || '';
+        document.getElementById('post-footer').textContent = (post.updated ? ('更新：' + post.updated + ' · ') : '') + id;
+        renderAccordion(post.sections || [], 'accordion');
+      } catch (e) {
+        document.getElementById('post-title').textContent = '加载失败';
+        document.getElementById('post-intro').textContent = e.message;
+      }
+    }
+    boot();
+  </script>
+</body>
+</html>
