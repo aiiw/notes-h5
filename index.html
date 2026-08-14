@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>笔记内容站</title>
+  <link rel="stylesheet" href="assets/theme.css" />
+</head>
+<body>
+  <header class="header">
+    <h1 id="site-title">笔记内容站</h1>
+    <div class="header-actions">
+      <a class="header-btn" href="admin/" title="管理">✏️</a>
+      <button class="header-btn" id="theme-toggle" onclick="toggleTheme()">🌙</button>
+    </div>
+  </header>
+  <div class="container">
+    <div class="intro-card" id="site-intro">加载菜单中…</div>
+    <div id="menu-list"></div>
+  </div>
+  <div class="footer">GitHub Pages · H5 笔记</div>
+  <script src="assets/reader.js"></script>
+  <script>
+    async function boot() {
+      try {
+        const menu = await loadJSON('content/menu.json');
+        document.getElementById('site-title').textContent = menu.siteTitle || '笔记内容站';
+        document.getElementById('site-intro').textContent = menu.siteIntro || '';
+        const list = document.getElementById('menu-list');
+        const items = (menu.items || []).filter(x => x.enabled !== false);
+        if (!items.length) {
+          list.innerHTML = '<div class="intro-card">还没有内容，请打开右上角管理后台发布。</div>';
+          return;
+        }
+        list.innerHTML = items.map(it => `
+          <div class="menu-card post-card">
+            <a href="post.html?id=${encodeURIComponent(it.id)}">
+              <div class="menu-title">${it.title || it.id}</div>
+              <div class="menu-desc">${it.desc || ''}</div>
+              <div class="menu-meta">${it.updated || ''}</div>
+            </a>
+          </div>`).join('');
+      } catch (e) {
+        document.getElementById('site-intro').textContent = '菜单加载失败：' + e.message;
+      }
+    }
+    boot();
+  </script>
+</body>
+</html>
