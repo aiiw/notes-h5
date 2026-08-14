@@ -124,7 +124,26 @@
 
     <div class="admin-grid">
       <div class="panel">
+        <h2>栏目管理</h2>
+        <p class="muted">前台顶部按栏目切换文章列表。可增删改栏目名称。</p>
+        <div id="category-list"></div>
+        <div class="row">
+          <input id="cat-new-name" placeholder="新栏目名称，如：工作" style="flex:1;min-width:120px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:8px;padding:8px 10px" />
+          <button class="btn btn-primary" type="button" onclick="addCategory()">添加栏目</button>
+        </div>
+        <div id="cat-status" class="status"></div>
+      </div>
+    </div>
+
+    <div class="admin-grid">
+      <div class="panel">
         <h2>文章菜单</h2>
+        <div class="field">
+          <label>按栏目筛选</label>
+          <select id="list-category-filter" onchange="onListCategoryFilter()">
+            <option value="">全部栏目</option>
+          </select>
+        </div>
         <div id="post-list"></div>
         <div id="post-pager" class="pager"></div>
         <div class="row">
@@ -145,6 +164,9 @@
         <div class="field"><label>文首说明</label><textarea id="post-intro"></textarea></div>
         <div class="field"><label>是否显示在菜单</label>
           <select id="post-enabled"><option value="true">显示</option><option value="false">隐藏</option></select>
+        </div>
+        <div class="field"><label>所属栏目</label>
+          <select id="post-category"></select>
         </div>
         <div class="field"><label>可见性（默认公开）</label>
           <select id="post-visibility" onchange="onVisibilityChange()">
