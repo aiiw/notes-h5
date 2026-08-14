@@ -33,7 +33,7 @@
 
   <div id="import-view" class="panel" style="margin-top:12px">
     <h2>批量导入 Markdown / H5</h2>
-    <p class="muted">支持一次选择多个 `.md` / `.html` 文件。自动按二级标题拆成折叠章节，并发布到 GitHub。</p>
+    <p class="muted">支持一次选择多个 `.md` / `.html` 文件。Markdown 按二级标题拆章；已有折叠结构的 H5 按 accordion 解析。</p>
     <div class="field">
       <label>选择文件（可多选）</label>
       <input id="import-files" type="file" multiple accept=".md,.markdown,.txt,.html,.htm,.h5,text/markdown,text/html" />
@@ -45,6 +45,22 @@
     </div>
     <div id="import-preview" class="muted" style="margin-top:10px"></div>
     <div id="import-status" class="status"></div>
+  </div>
+
+  <div id="html-import-view" class="panel" style="margin-top:12px">
+    <h2>专用 HTML 教程导入</h2>
+    <p class="muted">针对带侧栏目录 + <code>main-content</code> + <code>h2</code> 章节的教程 HTML（如《SQL Server 编程教程》）。每个 <code>h2</code> 自动变成一节折叠卡片，代码块 / 表格 / tip·warn·info 框一并转换。</p>
+    <div class="field">
+      <label>选择 HTML 文件（可多选）</label>
+      <input id="html-import-files" type="file" multiple accept=".html,.htm,text/html" />
+    </div>
+    <div class="row">
+      <button class="btn btn-primary" onclick="previewHtmlImport()">解析为折叠 H5</button>
+      <button class="btn btn-primary" onclick="publishHtmlImport()">发布到 GitHub</button>
+      <button class="btn" onclick="clearHtmlImport()">清空预览</button>
+    </div>
+    <div id="html-import-preview" class="muted" style="margin-top:10px"></div>
+    <div id="html-import-status" class="status"></div>
   </div>
 
     <div class="admin-grid">
