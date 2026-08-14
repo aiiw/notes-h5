@@ -1,0 +1,65 @@
+{
+  "id": "excel-formulas",
+  "title": "Excel 高效公式速查",
+  "intro": "从参考站迁移的可折叠笔记骨架，可在管理后台继续追加章节。",
+  "updated": "2026-08-14T02:17:24Z",
+  "sections": [
+    {
+      "id": "map",
+      "title": "MAP — 逐元素变换",
+      "badge": "1",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "对数组每个元素执行同一计算，常配合 LAMBDA / XLOOKUP。"
+        },
+        {
+          "type": "h3",
+          "text": "基本写法"
+        },
+        {
+          "type": "code",
+          "text": "=MAP(A2:A10, LAMBDA(x, x*2))\n=MAP(A2:A10, B2:B10, LAMBDA(数量, 单价, 数量*单价))"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法：MAP(区域, LAMBDA(x, 对x的计算))"
+        }
+      ]
+    },
+    {
+      "id": "scan",
+      "title": "SCAN — 逐步累积",
+      "badge": "2",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "返回每一步中间结果，适合累计求和、连续标记。"
+        },
+        {
+          "type": "code",
+          "text": "=SCAN(0, A2:A10, LAMBDA(累计, 当前, 累计 + 当前))"
+        },
+        {
+          "type": "info",
+          "text": "SCAN 返回数组；REDUCE 只返回最终值。"
+        }
+      ]
+    },
+    {
+      "id": "xlookup",
+      "title": "XLOOKUP 速查",
+      "badge": "3",
+      "blocks": [
+        {
+          "type": "code",
+          "text": "=XLOOKUP(查找值, 查找列, 返回列, \"无数据\")"
+        },
+        {
+          "type": "warning",
+          "text": "找不到时一定要给第4参数，避免满屏 #N/A。"
+        }
+      ]
+    }
+  ]
+}
