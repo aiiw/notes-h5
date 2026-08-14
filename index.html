@@ -10,36 +10,60 @@
   <header class="header">
     <h1 id="site-title">笔记内容站</h1>
     <div class="header-actions">
+      <button class="header-btn" id="search-toggle" onclick="toggleSearch()" title="搜索">🔍</button>
       <a class="header-btn" href="admin/" title="管理">✏️</a>
       <button class="header-btn" id="theme-toggle" onclick="toggleTheme()">🌙</button>
     </div>
   </header>
+  <div class="search-box" id="search-box">
+    <input class="search-input" id="search-input" placeholder="搜索菜单标题或简介…" oninput="filterMenu(this.value)" />
+  </div>
   <div class="container">
     <div class="intro-card" id="site-intro">加载菜单中…</div>
     <div id="menu-list"></div>
+    <div id="menu-empty" class="intro-card hidden">没有匹配的笔记</div>
   </div>
   <div class="footer">GitHub Pages · H5 笔记</div>
   <script src="assets/reader.js"></script>
   <script>
+    let menuItems = [];
+
+    window.filterMenu = function (q) {
+      q = (q || "").trim().toLowerCase();
+      const cards = document.querySelectorAll("#menu-list .menu-card");
+      let shown = 0;
+      cards.forEach((el) => {
+        const hay = (el.getAttribute("data-search") || "").toLowerCase();
+        const ok = !q || hay.includes(q);
+        el.classList.toggle("hidden", !ok);
+        if (ok) shown++;
+      });
+      const empty = document.getElementById("menu-empty");
+      if (empty) empty.classList.toggle("hidden", shown > 0 || !cards.length);
+    };
+
     async function boot() {
       try {
         const menu = await loadJSON('content/menu.json');
         document.getElementById('site-title').textContent = menu.siteTitle || '笔记内容站';
         document.getElementById('site-intro').textContent = menu.siteIntro || '';
         const list = document.getElementById('menu-list');
-        const items = (menu.items || []).filter(x => x.enabled !== false);
-        if (!items.length) {
+        menuItems = (menu.items || []).filter(x => x.enabled !== false);
+        if (!menuItems.length) {
           list.innerHTML = '<div class="intro-card">还没有内容，请打开右上角管理后台发布。</div>';
           return;
         }
-        list.innerHTML = items.map(it => `
-          <div class="menu-card post-card">
+        list.innerHTML = menuItems.map(it => {
+          const search = [it.title, it.desc, it.id].filter(Boolean).join(' ');
+          return `
+          <div class="menu-card post-card" data-search="${String(search).replace(/"/g, '&quot;')}">
             <a href="post.html?id=${encodeURIComponent(it.id)}">
               <div class="menu-title">${it.title || it.id}</div>
               <div class="menu-desc">${it.desc || ''}</div>
               <div class="menu-meta">${it.updated || ''}</div>
             </a>
-          </div>`).join('');
+          </div>`;
+        }).join('');
       } catch (e) {
         document.getElementById('site-intro').textContent = '菜单加载失败：' + e.message;
       }
