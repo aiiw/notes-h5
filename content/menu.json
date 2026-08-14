@@ -1,6 +1,6 @@
 {
   "siteTitle": "aiiw 笔记站",
-  "siteIntro": "手机友好的 H5 笔记站。支持折叠阅读与菜单搜索；管理后台可导入 Markdown / 教程 HTML 并一键发布。",
+  "siteIntro": "手机友好的 H5 笔记站。支持折叠阅读、菜单搜索、Word/Excel 导入与私密加密文章。",
   "items": [
     {
       "id": "welcome",
