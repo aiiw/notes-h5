@@ -33,6 +33,14 @@
       "updated": "2026-08-14",
       "enabled": true,
       "order": 4
+    },
+    {
+      "id": "sql-server-p_mold_auto_apply_v4_bak",
+      "title": "SQL Server 编程教程 — 基于自动点模脚本 p_mold_auto_apply_v4_bak",
+      "desc": "SQL Server 编程教程 — 基于自动点模脚本 p_mold_auto_apply_v4_bak",
+      "updated": "2026-08-14",
+      "enabled": true,
+      "order": 5
     }
   ]
 }
