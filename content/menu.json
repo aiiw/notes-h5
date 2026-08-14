@@ -1,0 +1,22 @@
+{
+  "siteTitle": "aiiw 笔记站",
+  "siteIntro": "手机友好的 H5 笔记。点进文章后可折叠展开；右上角可进入管理后台继续发布/编辑。",
+  "items": [
+    {
+      "id": "welcome",
+      "title": "使用说明",
+      "desc": "如何用管理后台发布与编辑内容",
+      "updated": "2026-08-14",
+      "enabled": true,
+      "order": 1
+    },
+    {
+      "id": "excel-formulas",
+      "title": "Excel 高效公式速查",
+      "desc": "动态数组 / LAMBDA 常用写法（折叠阅读）",
+      "updated": "2026-08-14",
+      "enabled": true,
+      "order": 2
+    }
+  ]
+}
