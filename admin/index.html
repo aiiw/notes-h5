@@ -56,6 +56,23 @@ body{padding-top:0}
   </div>
 
   <div id="app-view" class="hidden">
+
+  <div id="import-view" class="panel" style="margin-top:12px">
+    <h2>批量导入 Markdown / H5</h2>
+    <p class="muted">支持一次选择多个 `.md` / `.html` 文件。自动按二级标题拆成折叠章节，并发布到 GitHub。</p>
+    <div class="field">
+      <label>选择文件（可多选）</label>
+      <input id="import-files" type="file" multiple accept=".md,.markdown,.txt,.html,.htm,.h5,text/markdown,text/html" />
+    </div>
+    <div class="row">
+      <button class="btn btn-primary" onclick="previewImport()">解析预览</button>
+      <button class="btn btn-primary" onclick="publishImport()">一键发布到 GitHub</button>
+      <button class="btn" onclick="clearImport()">清空预览</button>
+    </div>
+    <div id="import-preview" class="muted" style="margin-top:10px"></div>
+    <div id="import-status" class="status"></div>
+  </div>
+
     <div class="admin-grid">
       <div class="panel">
         <h2>文章菜单</h2>
@@ -93,6 +110,7 @@ body{padding-top:0}
   </div>
 </div>
 <script src="../assets/reader.js"></script>
+<script src="./importer.js"></script>
 <script src="./admin.js"></script>
 </body>
 </html>
