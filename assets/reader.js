@@ -89,22 +89,23 @@
           <div class="accordion-title">${esc(sec.title || "")}</div>
           <div class="accordion-icon">▼</div>
         </div>
-        <div class="accordion-content"><div class="accordion-inner">${body}</div></div>
+        <div class="accordion-content"><div class="accordion-content-clip"><div class="accordion-inner">${body}</div></div></div>
       </div>`;
     }).join("");
   };
 
   window.toggleAcc = function (header) {
     const item = header.parentElement;
-    const content = item.querySelector(".accordion-content");
-    const open = item.classList.contains("active");
-    if (open) {
-      content.style.maxHeight = null;
-      item.classList.remove("active");
-    } else {
-      item.classList.add("active");
-      content.style.maxHeight = content.scrollHeight + "px";
+    if (!item) return;
+    const willOpen = !item.classList.contains("active");
+    // 可选：同组只开一节，避免多节同时撑开造成错乱感
+    const group = item.parentElement;
+    if (group && willOpen) {
+      group.querySelectorAll(".accordion-item.active").forEach((el) => {
+        if (el !== item) el.classList.remove("active");
+      });
     }
+    item.classList.toggle("active", willOpen);
   };
 
   window.filterAccordion = function (q) {
