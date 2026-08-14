@@ -18,6 +18,12 @@ function setStatus(id, msg, ok) {
   el.className = "status " + (ok === true ? "ok" : ok === false ? "err" : "");
 }
 
+function toggleFold(btn) {
+  const panel = btn && btn.closest ? btn.closest(".fold-panel") : null;
+  if (!panel) return;
+  panel.classList.toggle("collapsed");
+}
+
 function getStoredAdminPin() {
   return localStorage.getItem(ADMIN_PIN_KEY) || DEFAULT_ADMIN_PIN;
 }
