@@ -314,12 +314,20 @@ else {
 
 /* ===== batch import ===== */
 let importQueue = [];
+let htmlImportQueue = [];
 
 function clearImport() {
   importQueue = [];
   document.getElementById("import-files").value = "";
   document.getElementById("import-preview").innerHTML = "";
   setStatus("import-status", "", null);
+}
+
+function clearHtmlImport() {
+  htmlImportQueue = [];
+  document.getElementById("html-import-files").value = "";
+  document.getElementById("html-import-preview").innerHTML = "";
+  setStatus("html-import-status", "", null);
 }
 
 async function previewImport() {
@@ -345,32 +353,58 @@ async function previewImport() {
   setStatus("import-status", `已解析 ${importQueue.length} 个文件，可点一键发布`, true);
 }
 
-async function publishImport() {
-  if (!cfg()) {
-    setStatus("import-status", "请先登录 GitHub", false);
+async function previewHtmlImport() {
+  const input = document.getElementById("html-import-files");
+  const files = [...(input.files || [])];
+  if (!files.length) {
+    setStatus("html-import-status", "请先选择 HTML 文件", false);
     return;
   }
-  if (!importQueue.length) {
-    await previewImport();
-    if (!importQueue.length) return;
+  setStatus("html-import-status", "按教程 HTML 结构解析中…", null);
+  htmlImportQueue = [];
+  const lines = [];
+  for (const f of files) {
+    try {
+      const post = await NotesImporter.fileToPost(f, { mode: "tutorial-html" });
+      htmlImportQueue.push({ fileName: f.name, post });
+      const sample = (post.sections || []).slice(0, 3).map(s => s.title).join("；");
+      lines.push(
+        `✅ ${f.name} → <b>${post.id}</b> · ${post.title} · <b>${post.sections.length}</b> 个折叠章节` +
+        (sample ? `<br>&nbsp;&nbsp;章节示例：${sample}${post.sections.length > 3 ? "…" : ""}` : "")
+      );
+    } catch (e) {
+      lines.push(`❌ ${f.name} 解析失败：${e.message}`);
+    }
   }
-  setStatus("import-status", "发布中，请稍候…", null);
+  document.getElementById("html-import-preview").innerHTML = lines.join("<br>");
+  setStatus("html-import-status", `已解析 ${htmlImportQueue.length} 个 HTML，可点发布`, true);
+}
+
+async function publishQueue(queue, statusId, emptyMsg) {
+  if (!cfg()) {
+    setStatus(statusId, "请先登录 GitHub", false);
+    return;
+  }
+  if (!queue.length) {
+    setStatus(statusId, emptyMsg, false);
+    return;
+  }
+  setStatus(statusId, "发布中，请稍候…", null);
   try {
-    // refresh menu sha
     const menuFile = await getFile("content/menu.json");
     menu = JSON.parse(menuFile.content);
     menu._sha = menuFile.sha;
     menu.items = menu.items || [];
 
     let ok = 0;
-    for (const item of importQueue) {
+    for (const item of queue) {
       const post = item.post;
       let sha = null;
       try {
         const old = await getFile(`content/posts/${post.id}.json`);
         sha = old.sha;
       } catch (e) {}
-      const put = await putFile(
+      await putFile(
         `content/posts/${post.id}.json`,
         JSON.stringify(post, null, 2) + "\n",
         `import: ${post.id} from ${item.fileName}`,
@@ -387,18 +421,34 @@ async function publishImport() {
       };
       if (idx >= 0) menu.items[idx] = menuItem; else menu.items.push(menuItem);
       ok += 1;
-      setStatus("import-status", `已发布 ${ok}/${importQueue.length}：${post.id}`, true);
+      setStatus(statusId, `已发布 ${ok}/${queue.length}：${post.id}`, true);
     }
     menu.siteTitle = document.getElementById("site-title").value.trim() || menu.siteTitle;
-    menu.siteIntro = document.getElementById("site-intro").value.trim() || menu.siteIntro || "支持批量导入 Markdown / H5";
+    menu.siteIntro = document.getElementById("site-intro").value.trim() || menu.siteIntro || "支持批量导入 Markdown / HTML";
     const latest = await getFile("content/menu.json");
     menu._sha = latest.sha;
     const payload = { siteTitle: menu.siteTitle, siteIntro: menu.siteIntro, items: menu.items };
     const mres = await putFile("content/menu.json", JSON.stringify(payload, null, 2) + "\n", "menu: batch import", menu._sha);
     menu._sha = mres.content.sha;
     await reloadAll();
-    setStatus("import-status", `全部完成：成功 ${ok} 篇。约 1 分钟后刷新站点查看。`, true);
+    setStatus(statusId, `全部完成：成功 ${ok} 篇。约 1 分钟后刷新站点查看。`, true);
   } catch (e) {
-    setStatus("import-status", "发布失败：" + e.message, false);
+    setStatus(statusId, "发布失败：" + e.message, false);
   }
+}
+
+async function publishImport() {
+  if (!importQueue.length) {
+    await previewImport();
+    if (!importQueue.length) return;
+  }
+  await publishQueue(importQueue, "import-status", "请先解析文件");
+}
+
+async function publishHtmlImport() {
+  if (!htmlImportQueue.length) {
+    await previewHtmlImport();
+    if (!htmlImportQueue.length) return;
+  }
+  await publishQueue(htmlImportQueue, "html-import-status", "请先解析 HTML");
 }
