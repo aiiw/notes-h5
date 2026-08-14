@@ -1,0 +1,61 @@
+{
+  "id": "welcome",
+  "title": "使用说明",
+  "intro": "这是内容管理平台生成的第一篇示例。风格对齐 excel-h5-formulas。",
+  "updated": "2026-08-14T02:17:24Z",
+  "sections": [
+    {
+      "id": "s1",
+      "title": "怎么阅读",
+      "badge": "1",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "首页是统一菜单。点进任意文章后，每一节都可以折叠/展开。"
+        },
+        {
+          "type": "tip",
+          "text": "支持深色/浅色主题、搜索过滤、代码一键复制。"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "title": "怎么发布",
+      "badge": "2",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "打开 /admin/ ，填入 GitHub Token（仅保存在你手机/电脑本地），即可新增、编辑文章与菜单。"
+        },
+        {
+          "type": "warning",
+          "text": "Token 不要发到聊天或提交到仓库。泄露后请立刻到 GitHub 作废重建。"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "新增文章会写入 content/posts/",
+            "菜单写入 content/menu.json",
+            "保存后 GitHub Pages 约 1 分钟刷新"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "title": "继续编辑",
+      "badge": "3",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "管理后台左侧选中已有文章，改标题/章节后点「保存到 GitHub」即可覆盖更新。"
+        },
+        {
+          "type": "code",
+          "text": "https://aiiw.github.io/notes-h5/\nhttps://aiiw.github.io/notes-h5/admin/"
+        }
+      ]
+    }
+  ]
+}
