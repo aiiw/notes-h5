@@ -1,0 +1,855 @@
+{
+  "id": "datagrip-sql-server",
+  "title": "DataGrip 面向 SQL Server 开发培训手册",
+  "intro": "版本: DataGrip 2023.x+ | 数据库: SQL Server 2019/2022 重点: 调试技巧与高效开发实战",
+  "updated": "2026-08-14T06:07:53.010Z",
+  "sections": [
+    {
+      "id": "s1",
+      "title": "一、环境配置与连接管理",
+      "badge": "1",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "1.1 SQL Server 连接配置"
+        },
+        {
+          "type": "code",
+          "text": "File → Data Sources → \"+\" → Microsoft SQL Server\n\n必填项：\n├── Host: localhost 或服务器IP\n├── Port: 1433 (默认端口)\n├── User: sa 或 Windows 身份\n├── Password: 对应密码\n└── Database: 目标数据库名"
+        },
+        {
+          "type": "p",
+          "text": "关键配置项："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**Driver**: 选择 `Microsoft JDBC Driver`（而非 jTDS）",
+            "**SSL**: 开发环境可关闭（Trust server certificate）",
+            "**Schema**: 默认选择 `dbo`，避免跨 schema 查询错误"
+          ]
+        },
+        {
+          "type": "h3",
+          "text": "1.2 多环境管理"
+        },
+        {
+          "type": "code",
+          "text": "推荐使用 DataGrip 特性：\n├── 项目级数据源：项目共享的连接配置\n├── 个人数据源：本地开发使用\n└── 生产连接：标记为\"只读\"防止误操作"
+        },
+        {
+          "type": "p",
+          "text": "操作步骤："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "`File → Data Sources → 右键 → Duplicate` 克隆连接",
+            "右键数据源 → `Color Settings` 用颜色区分环境",
+            "生产环境建议使用只读账号"
+          ]
+        },
+        {
+          "type": "h3",
+          "text": "1.3 Schema 浏览与筛选"
+        },
+        {
+          "type": "code",
+          "text": "Database 工具窗口（右侧）：\n├── 展开数据库 → Tables → 查看所有表\n├── 右键表 → Diagrams → Show Diagram 查看关系图\n└── 过滤操作：\n    - Ctrl + F: 在数据库窗口搜索\n    - 点击筛选图标：按 Schema、类型过滤"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "title": "二、SQL 调试核心技术",
+      "badge": "2",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "2.1 调试基础设置"
+        },
+        {
+          "type": "p",
+          "text": "开启 SQL 调试模式："
+        },
+        {
+          "type": "code",
+          "text": "Run → Edit Configurations → \"+\" → SQL Script\n\n配置项：\n├── Name: 调试配置名称\n├── Data Source: 选择目标数据库\n├── Script: 要调试的 SQL 文件\n└── Working directory: 项目目录"
+        },
+        {
+          "type": "h3",
+          "text": "2.2 断点设置与单步调试"
+        },
+        {
+          "type": "code",
+          "text": "功能 | 操作 | 说明\n**设置断点** | 点击行号左侧空白处 | SQL 编辑器中设置断点\n**单步执行** | F8 (Step Over) | 执行当前语句，不进入子查询\n**步入存储过程** | F7 (Step Into) | 进入存储过程/函数内部\n**跳出存储过程** | Shift+F8 (Step Out) | 跳出当前存储过程\n**继续执行** | F9 (Resume) | 执行到下一个断点\n**条件断点** | 右键断点 → Edit | 设置条件断点（如 @count > 100）"
+        },
+        {
+          "type": "h3",
+          "text": "2.3 变量监视与检查"
+        },
+        {
+          "type": "p",
+          "text": "Variables 窗口："
+        },
+        {
+          "type": "code",
+          "text": "调试时自动打开，显示：\n├── Local Variables: 局部变量值\n├── Parameters: 存储过程参数值  \n└── Global: 全局变量"
+        },
+        {
+          "type": "p",
+          "text": "监视表达式："
+        },
+        {
+          "type": "code",
+          "text": "右键 Watches → Add Watch → 输入表达式\n\n支持：\n├── 变量：@myVariable\n├── 表达式：@count > 100\n└── SQL 函数：OBJECT_ID('dbo.MyTable')"
+        },
+        {
+          "type": "p",
+          "text": "表达式求值："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "调试时右键 → `Evaluate Expression`（Alt+F8）",
+            "可即时执行 SELECT 查询验证数据"
+          ]
+        },
+        {
+          "type": "h3",
+          "text": "2.4 数据查看技巧"
+        },
+        {
+          "type": "p",
+          "text": "临时表查看："
+        },
+        {
+          "type": "code",
+          "text": "-- 调试时直接查询临时表\nSELECT * FROM #tempTable;\nSELECT * FROM ##globalTempTable;\n\n-- 查看临时表结构\nEXEC tempdb..sp_help #tempTable;"
+        },
+        {
+          "type": "p",
+          "text": "结果集对比："
+        },
+        {
+          "type": "code",
+          "text": "Run → Compare Results → 选择结果集对比\n\n用途：\n├── 对比两次查询结果差异\n├── 验证数据迁移正确性\n└── 测试不同参数结果"
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "title": "三、存储过程调试实战",
+      "badge": "3",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "3.1 开启存储过程调试"
+        },
+        {
+          "type": "p",
+          "text": "前置条件："
+        },
+        {
+          "type": "code",
+          "text": "-- SQL Server 端需开启 CLR 调试（仅需一次）\nEXEC sp_configure 'clr enabled', 1;\nRECONFIGURE;\n\n-- 确保端口允许调试连接（默认 135 端口）\n-- 防火墙需开放该端口"
+        },
+        {
+          "type": "p",
+          "text": "DataGrip 配置："
+        },
+        {
+          "type": "code",
+          "text": "Run → Edit Configurations → \"+\" → SQL Server → Debug\n\n关键配置：\n├── Host name: SQL Server 服务器地址\n├── Port: 1433 (SQL Server 端口)\n├── Debug port: 135 (调试端口)\n├── Login: 有 sysadmin 权限的账号\n└── Password: 对应密码"
+        },
+        {
+          "type": "h3",
+          "text": "3.2 调试存储过程步骤"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**打开存储过程定义**"
+          ]
+        },
+        {
+          "type": "code",
+          "text": "   -- 在 Database 窗口找到存储过程\n   -- 双击打开 OR 使用 Ctrl+B 跳转定义"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**在存储过程中设置断点**"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "- 点击要调试代码行的左侧 - 推荐在第一个可执行语句处开始"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**使用调试配置启动**"
+          ]
+        },
+        {
+          "type": "code",
+          "text": "   右键存储过程 → Debug 'dbo.usp_MyProcedure'"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**输入参数值**"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "- 弹出参数输入对话框 - 填入测试参数"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**开始单步调试**"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "- F8 单步执行，F7 步入 - 在 Variables 窗口检查变量 - 验证逻辑正确性"
+        },
+        {
+          "type": "h3",
+          "text": "3.3 调试技巧与常见问题"
+        },
+        {
+          "type": "p",
+          "text": "参数传递技巧："
+        },
+        {
+          "type": "code",
+          "text": "-- 在 Debug 配置中固定参数\nSET @Param1 = '测试值';\nSET @Param2 = 123;\n\n-- 使用 NULL 测试空值处理\nSET @NullableParam = NULL;"
+        },
+        {
+          "type": "p",
+          "text": "调试事务回滚："
+        },
+        {
+          "type": "code",
+          "text": "-- 调试开始时开启事务\nBEGIN TRANSACTION;\n\n-- 调试完成后回滚\n-- 在 Debug 过程中手动执行\nROLLBACK TRANSACTION;\n\n-- 或者使用 SAVEPOINT\nSAVE TRANSACTION savepoint_name;\n-- ... 调试代码 ...\nROLLBACK TRANSACTION savepoint_name;"
+        },
+        {
+          "type": "p",
+          "text": "调试长时间运行的存储过程："
+        },
+        {
+          "type": "code",
+          "text": "技巧：\n├── 在循环内设置条件断点\n├── 使用 Debug → Run to Cursor (Alt+F9) 跳到指定位置\n├── 使用 Debug → Skip to Next Breakpoint\n└── 避免手动跳过数千次循环"
+        },
+        {
+          "type": "h3",
+          "text": "3.4 存储过程调试实战示例"
+        },
+        {
+          "type": "code",
+          "text": "-- 示例：调试一个数据同步存储过程\nCREATE PROCEDURE dbo.usp_SyncData\n    @SourceDate DATE,\n    @BatchSize INT = 1000\nAS\nBEGIN\n    SET NOCOUNT ON;\n    \n    -- 建议：在调试开始处设置断点\n    DECLARE @CurrentBatch INT = 0;\n    DECLARE @TotalRecords INT;\n    \n    -- 获取待同步数据量\n    SELECT @TotalRecords = COUNT(*)\n    FROM staging.SourceTable\n    WHERE sync_date >= @SourceDate;\n    \n    -- 分批处理\n    WHILE @CurrentBatch < @TotalRecords\n    BEGIN\n        -- 此处设置条件断点：@CurrentBatch = 100\n        INSERT INTO target.DestinationTable\n        SELECT TOP (@BatchSize) *\n        FROM staging.SourceTable\n        WHERE sync_date >= @SourceDate\n        ORDER BY sync_date\n        OFFSET @CurrentBatch ROWS\n        FETCH NEXT @BatchSize ROWS ONLY;\n        \n        SET @CurrentBatch += @BatchSize;\n        \n        -- 调试时检查进度\n        PRINT 'Processed: ' + CAST(@CurrentBatch AS VARCHAR);\n    END\n    \n    PRINT 'Sync complete. Total: ' + CAST(@TotalRecords AS VARCHAR);\nEND;\nGO"
+        },
+        {
+          "type": "p",
+          "text": "调试步骤："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "在 `DECLARE @CurrentBatch INT = 0;` 行设置断点",
+            "右键存储过程 → Debug",
+            "输入参数：`@SourceDate = '2026-07-01'`, `@BatchSize = 100`",
+            "F8 执行到 INSERT 语句",
+            "在 Variables 窗口检查变量值",
+            "循环内设置条件断点：`@CurrentBatch = 200`",
+            "验证数据正确性"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "title": "四、执行计划与性能分析",
+      "badge": "4",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "4.1 获取执行计划"
+        },
+        {
+          "type": "p",
+          "text": "方式一：DataGrip 专用方式"
+        },
+        {
+          "type": "code",
+          "text": "Tools → SQL Server → Show Execution Plan\n\n或使用工具栏按钮：📊 图标"
+        },
+        {
+          "type": "p",
+          "text": "方式二：SQL 命令方式"
+        },
+        {
+          "type": "code",
+          "text": "-- 显示实际执行计划\nSET STATISTICS XML ON;\n-- 执行 SQL 查询\nSELECT * FROM dbo.Orders WHERE OrderDate >= '2026-07-01';\nSET STATISTICS XML OFF;\n\n-- 显示文本执行计划\nSET SHOWPLAN_TEXT ON;\nSELECT * FROM dbo.Orders WHERE OrderDate >= '2026-07-01';\nSET SHOWPLAN_TEXT OFF;"
+        },
+        {
+          "type": "p",
+          "text": "方式三：估计执行计划"
+        },
+        {
+          "type": "code",
+          "text": "在 SQL 编辑器中：\nCtrl + Alt + E (Show Plan)"
+        },
+        {
+          "type": "h3",
+          "text": "4.2 执行计划解读"
+        },
+        {
+          "type": "p",
+          "text": "关键图标含义："
+        },
+        {
+          "type": "code",
+          "text": "图标 | 操作 | 关注点\n🟢 | Clustered Index Scan | 大量数据扫描，考虑加索引\n🟢 | Table Scan | 无索引全表扫描，必须优化\n🔵 | Index Seek | 高效索引查找，理想状态\n🔴 | Key Lookup | 书签查找，考虑覆盖索引\n🟡 | Sort | 内存排序，大量数据时慢\n🔴 | Hash Match | 大数据集连接，考虑索引"
+        },
+        {
+          "type": "p",
+          "text": "性能瓶颈识别："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**残差谓词（Residual Predicate）**"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "- 执行计划中出现残差谓词 - 说明索引选择不佳 - 优化：调整索引列顺序或创建覆盖索引"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**书签查找（Bookmark Lookup）**"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "- Key Lookup 操作 - 优化：创建包含所有 SELECT 列的覆盖索引"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**警告图标**"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "- 执行计划中的黄色警告 - 通常表示缺少统计信息、隐式类型转换等"
+        },
+        {
+          "type": "h3",
+          "text": "4.3 实际 vs 估计执行计划"
+        },
+        {
+          "type": "code",
+          "text": "类型 | 用途 | 注意事项\n**估计计划** | 预估查询成本 | 不含实际运行指标\n**实际计划** | 真实执行数据 | 包含实际行数、时间\n**比较差异** | 识别统计信息过期 | 差异大时需更新统计"
+        },
+        {
+          "type": "p",
+          "text": "更新统计信息："
+        },
+        {
+          "type": "code",
+          "text": "-- 更新单表统计\nUPDATE STATISTICS dbo.Orders;\n\n-- 更新数据库所有统计\nEXEC sp_updatestats;\n\n-- 查看统计信息更新时间\nDBCC SHOW_STATISTICS ('dbo.Orders', 'IX_Orders_OrderDate');"
+        },
+        {
+          "type": "h3",
+          "text": "4.4 性能统计"
+        },
+        {
+          "type": "code",
+          "text": "-- 开启 I/O 统计\nSET STATISTICS IO ON;\n\n-- 开启时间统计\nSET STATISTICS TIME ON;\n\n-- 示例：分析查询性能\nSET STATISTICS IO, TIME ON;\nGO\n\n-- 慢查询\nSELECT o.OrderID, c.CustomerName, \n       SUM(oi.Quantity) AS TotalQty\nFROM dbo.Orders o\nJOIN dbo.Customers c ON o.CustomerID = c.CustomerID\nJOIN dbo.OrderItems oi ON o.OrderID = oi.OrderID\nWHERE o.OrderDate >= '2026-07-01'\nGROUP BY o.OrderID, c.CustomerName\nORDER BY TotalQty DESC;\n\nSET STATISTICS IO, TIME OFF;"
+        },
+        {
+          "type": "p",
+          "text": "输出解读："
+        },
+        {
+          "type": "code",
+          "text": "Table 'Orders'. Scan count 1, logical reads 15, \n         physical reads 0, read-ahead reads 0, \n         lob logical reads 0, lob physical reads 0, \n         lob read-ahead reads 0."
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**logical reads**: 逻辑读次数（衡量缓存命中）",
+            "**physical reads**: 物理读次数（磁盘读取，越多越慢）",
+            "**scan count**: 扫描次数（大表多次扫描需优化）"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "title": "五、SQL Server 特有技巧",
+      "badge": "5",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "5.1 临时表可见性"
+        },
+        {
+          "type": "code",
+          "text": "类型 | 命名 | 生命周期 | 可见性\n本地临时表 | #temp | 当前会话 | 仅本会话可见\n全局临时表 | ##temp | 所有会话 | 所有会话可见\n表变量 | @temp | 当前批次 | 仅当前批次\n会话临时表 | #temp (连接关闭) | 连接关闭时 | 连接级"
+        },
+        {
+          "type": "p",
+          "text": "DataGrip 中查看临时表："
+        },
+        {
+          "type": "code",
+          "text": "-- 查看所有临时表\nSELECT name, create_date \nFROM tempdb.sys.tables\nWHERE name LIKE '#%';\n\n-- 查询本地临时表\nSELECT * FROM #myTempTable;\n\n-- 注意：不同连接创建的 #temp 表不可互见\n-- DataGrip 每个查询可能使用不同连接"
+        },
+        {
+          "type": "h3",
+          "text": "5.2 事务与锁监控"
+        },
+        {
+          "type": "code",
+          "text": "-- 查看当前活动事务\nSELECT \n    t.transaction_id,\n    t.name,\n    t.transaction_begin_time,\n    t.transaction_type,\n    t.transaction_state\nFROM sys.dm_tran_active_transactions t;\n\n-- 查看锁等待\nSELECT \n    r.request_session_id,\n    r.request_lock_type,\n    r.request_status,\n    r.request_resource_description\nFROM sys.dm_tran_locks r\nWHERE r.request_status = 'WAIT';\n\n-- 分析死锁\n-- SQL Server Error Log 中查看\n-- 或使用 extended events"
+        },
+        {
+          "type": "h3",
+          "text": "5.3 NOLOCK 使用指南"
+        },
+        {
+          "type": "p",
+          "text": "何时使用："
+        },
+        {
+          "type": "code",
+          "text": "-- 只读报表查询，允许脏读\nSELECT * FROM dbo.Orders WITH (NOLOCK);\n\n-- 分析型查询\nSELECT COUNT(*) FROM dbo.Logs WITH (NOLOCK);"
+        },
+        {
+          "type": "p",
+          "text": "何时禁止使用："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "业务数据统计（需要精确值）",
+            "金融、订单等重要数据",
+            "有外键约束的关联查询"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "DataGrip 提示："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "可以配置 Live Template 快速添加 NOLOCK",
+            "使用代码检查工具识别 NOLOCK 使用风险"
+          ]
+        },
+        {
+          "type": "h3",
+          "text": "5.4 等待统计分析"
+        },
+        {
+          "type": "code",
+          "text": "-- 查看当前等待类型\nSELECT \n    s.session_id,\n    s.login_name,\n    r.status,\n    r.wait_type,\n    r.wait_time,\n    r.blocking_session_id\nFROM sys.dm_exec_sessions s\nJOIN sys.dm_exec_requests r \n    ON s.session_id = r.session_id\nWHERE r.wait_type IS NOT NULL;\n\n-- 常见等待类型\n-- PAGEIOLATCH_* : I/O 等待，磁盘慢\n-- LCK_* : 锁等待，需要优化\n-- SOS_SCHEDULER_YIELD: CPU 瓶颈\n-- CXPACKET : 并行查询等待"
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "title": "六、高效开发快捷键与技巧",
+      "badge": "6",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "6.1 核心快捷键"
+        },
+        {
+          "type": "code",
+          "text": "快捷键 | 功能 | 使用场景\nCtrl + Enter | 执行当前 SQL | 最常用\nAlt + Enter | 执行并显示结果 | 带结果标签页\nCtrl + Shift + F10 | 执行脚本文件 | 大脚本执行\nCtrl + Alt + E | 显示执行计划 | 性能分析\nCtrl + D | 查看表结构 | 快速浏览表\nCtrl + B | 跳转到定义 | 存储过程、函数\nCtrl + Alt + B | 跳转到数据 | 表数据\nF2 | 跳转到下一个错误 | 代码修正\nAlt + F1 | 查找任何内容 | 全局搜索\nCtrl + Alt + Shift + T | 查找表/视图 | 快速定位"
+        },
+        {
+          "type": "h3",
+          "text": "6.2 代码补全与智能提示"
+        },
+        {
+          "type": "p",
+          "text": "智能提示功能："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**列名提示**: 输入 `SELECT * FROM` 后按 `Ctrl+Space`",
+            "**表名提示**: 表前缀后输入列名",
+            "**外键提示**: JOIN 时自动推荐关联列",
+            "**代码格式化**: `Ctrl+Alt+L` 格式化 SQL"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Postfix 补全："
+        },
+        {
+          "type": "code",
+          "text": "-- 输入表名后加点\norders.SELECT    -- 生成 SELECT 语句\norders.INSERT    -- 生成 INSERT 语句  \norders.UPDATE    -- 生成 UPDATE 语句\norders.DELETE    -- 生成 DELETE 语句\norders.JOIN      -- 生成 JOIN 语句\norders.WHERE     -- 生成 WHERE 子句\norders.GROUPBY   -- 生成 GROUP BY\norders.LEFTJOIN  -- 生成 LEFT JOIN"
+        },
+        {
+          "type": "h3",
+          "text": "6.3 结果集操作"
+        },
+        {
+          "type": "code",
+          "text": "功能 | 操作\n**导出结果** | 右键结果 → Export → CSV/Excel/JSON\n**复制为 SQL** | 右键结果 → Copy → Copy as SQL\n**结果对比** | Run → Compare Results\n**图表显示** | 结果窗口 → Chart 标签\n**数据修改** | 双击结果单元格直接编辑\n**排序过滤** | 点击列头排序，使用过滤器"
+        },
+        {
+          "type": "h3",
+          "text": "6.4 导航技巧"
+        },
+        {
+          "type": "p",
+          "text": "代码导航："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**最近修改**: `Ctrl+Shift+E`",
+            "**最近文件**: `Ctrl+E`",
+            "**文件切换**: `Ctrl+Tab`",
+            "**符号查找**: `Ctrl+Shift+Alt+N`（函数、变量）",
+            "**文件查找**: `Ctrl+Shift+N`"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "数据库导航："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "**快速打开表**: `Ctrl+Alt+B` 后输入表名",
+            "**数据库搜索**: `Ctrl+Alt+Shift+F`",
+            "**Schema 切换**: 工具栏 Schema 下拉框"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s7",
+      "title": "七、代码片段与模板",
+      "badge": "7",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "7.1 常用 Live Templates"
+        },
+        {
+          "type": "p",
+          "text": "创建路径: `File → Settings → Editor → Live Templates`"
+        },
+        {
+          "type": "h3",
+          "text": "模板一：安全查询"
+        },
+        {
+          "type": "code",
+          "text": "-- 模板缩写: sel\nSELECT TOP 100 \nFROM dbo.$TABLE$\nWHERE $COLUMN$ = '$VALUE$'\nORDER BY $ORDER_COL$ DESC;"
+        },
+        {
+          "type": "h3",
+          "text": "模板二：分页查询"
+        },
+        {
+          "type": "code",
+          "text": "-- 模板缩写: page\nSELECT *\nFROM dbo.$TABLE$\nWHERE $CONDITION$\nORDER BY $ORDER_COL$\nOFFSET ($PAGE$ - 1) * $PAGESIZE$ ROWS\nFETCH NEXT $PAGESIZE$ ROWS ONLY;"
+        },
+        {
+          "type": "h3",
+          "text": "模板三：存储过程模板"
+        },
+        {
+          "type": "code",
+          "text": "-- 模板缩写: proc\nCREATE OR ALTER PROCEDURE dbo.usp_$NAME$\n    @Param1 $TYPE1$,\n    @Param2 $TYPE2$ = $DEFAULT$\nAS\nBEGIN\n    SET NOCOUNT ON;\n    SET XACT_ABORT ON;\n    \n    DECLARE @Result INT = 0;\n    \n    BEGIN TRY\n        BEGIN TRANSACTION;\n        \n        -- TODO: 业务逻辑\n        \n        COMMIT TRANSACTION;\n        SET @Result = 1;\n    END TRY\n    BEGIN CATCH\n        IF @@TRANCOUNT > 0\n            ROLLBACK TRANSACTION;\n        \n        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();\n        DECLARE @ErrorSeverity INT = ERROR_SEVERITY();\n        DECLARE @ErrorState INT = ERROR_STATE();\n        \n        RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);\n        SET @Result = 0;\n    END CATCH\n    \n    RETURN @Result;\nEND;\nGO"
+        },
+        {
+          "type": "h3",
+          "text": "模板四：临时表调试"
+        },
+        {
+          "type": "code",
+          "text": "-- 模板缩写: temptbl\n-- 创建临时表\nCREATE TABLE #$NAME$ (\n    Id INT IDENTITY(1,1),\n    $COLUMN$ $TYPE$,\n    CreateTime DATETIME2 DEFAULT GETDATE()\n);\n\n-- 插入测试数据\nINSERT INTO #$NAME$ ($COLUMN$)\nSELECT $DATA$;\n\n-- 验证数据\nSELECT * FROM #$NAME$;\n\n-- 清理\nDROP TABLE #$NAME$;"
+        },
+        {
+          "type": "h3",
+          "text": "模板五：错误日志记录"
+        },
+        {
+          "type": "code",
+          "text": "-- 模板缩写: errorlog\n-- 记录错误\nINSERT INTO dbo.ErrorLog (\n    ProcedureName, ErrorMessage, \n    ErrorNumber, ErrorLine, RecordTime\n)\nVALUES (\n    'usp_$NAME$', ERROR_MESSAGE(),\n    ERROR_NUMBER(), ERROR_LINE(), GETDATE()\n);"
+        },
+        {
+          "type": "h3",
+          "text": "7.2 文件模板"
+        },
+        {
+          "type": "p",
+          "text": "新建 SQL 文件模板："
+        },
+        {
+          "type": "code",
+          "text": "File → Settings → Editor → File and Code Templates → SQL File\n\n模板内容：\n-- =====================================================\n-- File: ${NAME}.sql\n-- Description: ${DESCRIPTION}\n-- Author: ${USER}\n-- Created: ${DATE}\n-- =====================================================\n\nUSE ${DB_NAME};\nGO\n\nSET NOCOUNT ON;\nGO\n\n-- TODO: Write SQL here\nGO"
+        }
+      ]
+    },
+    {
+      "id": "s8",
+      "title": "八、实战案例：调试存储过程",
+      "badge": "8",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "场景描述"
+        },
+        {
+          "type": "p",
+          "text": "存储过程 `dbo.usp_SalesReport` 用于生成销售报表，逻辑复杂、涉及多表连接和动态 SQL，执行缓慢且偶尔出错。"
+        },
+        {
+          "type": "h3",
+          "text": "调试步骤"
+        },
+        {
+          "type": "h3",
+          "text": "第一步：查看执行计划"
+        },
+        {
+          "type": "code",
+          "text": "-- 开启实际执行计划\nSET STATISTICS XML ON;\nSET STATISTICS IO ON;\nSET STATISTICS TIME ON;\nGO\n\n-- 执行存储过程\nEXEC dbo.usp_SalesReport \n    @StartDate = '2026-01-01',\n    @EndDate = '2026-07-18',\n    @Region = NULL;\nGO\n\nSET STATISTICS XML, IO, TIME OFF;"
+        },
+        {
+          "type": "p",
+          "text": "分析："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "发现 `Orders` 表存在 Clustered Index Scan",
+            "`OrderDetails` 表存在 Key Lookup",
+            "总逻辑读次数超过 10,000 次"
+          ]
+        },
+        {
+          "type": "h3",
+          "text": "第二步：创建测试数据"
+        },
+        {
+          "type": "code",
+          "text": "-- 创建临时表模拟测试数据\nSELECT *\nINTO #TestOrders\nFROM dbo.Orders\nWHERE OrderDate BETWEEN '2026-07-01' AND '2026-07-18';\n\n-- 创建索引加速调试\nCREATE NONCLUSTERED INDEX IX_TestOrders_Date\nON #TestOrders (OrderDate)\nINCLUDE (CustomerID, TotalAmount);\n\n-- 验证数据量\nSELECT COUNT(*) AS RecordCount FROM #TestOrders;"
+        },
+        {
+          "type": "h3",
+          "text": "第三步：设置断点调试"
+        },
+        {
+          "type": "code",
+          "text": "-- 在存储过程的关键逻辑处添加 PRINT 语句\nCREATE OR ALTER PROCEDURE dbo.usp_SalesReport\n    @StartDate DATE,\n    @EndDate DATE,\n    @Region VARCHAR(50) = NULL\nAS\nBEGIN\n    SET NOCOUNT ON;\n    \n    PRINT '开始执行存储过程...';\n    PRINT CONCAT('参数: @StartDate=', @StartDate, \n                 ', @EndDate=', @EndDate);\n    \n    -- 断点1: 数据准备\n    DECLARE @TempData TABLE (\n        OrderID INT,\n        CustomerName NVARCHAR(100),\n        TotalAmount DECIMAL(18,2),\n        OrderDate DATE\n    );\n    \n    PRINT '准备数据...';\n    \n    INSERT INTO @TempData\n    SELECT \n        o.OrderID,\n        c.CustomerName,\n        SUM(oi.Quantity * oi.UnitPrice) AS TotalAmount,\n        o.OrderDate\n    FROM dbo.Orders o\n    JOIN dbo.Customers c ON o.CustomerID = c.CustomerID\n    JOIN dbo.OrderItems oi ON o.OrderID = oi.OrderID\n    WHERE o.OrderDate BETWEEN @StartDate AND @EndDate\n    AND (@Region IS NULL OR o.Region = @Region)\n    GROUP BY o.OrderID, c.CustomerName, o.OrderDate;\n    \n    PRINT CONCAT('插入记录数: ', @@ROWCOUNT);\n    \n    -- 断点2: 汇总计算\n    PRINT '计算汇总...';\n    \n    SELECT \n        CustomerName,\n        COUNT(*) AS OrderCount,\n        SUM(TotalAmount) AS GrandTotal,\n        AVG(TotalAmount) AS AvgAmount\n    FROM @TempData\n    GROUP BY CustomerName\n    ORDER BY GrandTotal DESC;\n    \n    PRINT '存储过程执行完成';\nEND;"
+        },
+        {
+          "type": "h3",
+          "text": "第四步：单步调试"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "在第一个 `PRINT` 语句处设置断点",
+            "使用 DataGrip Debug 配置启动调试",
+            "输入参数：`@StartDate='2026-07-01'`, `@EndDate='2026-07-18'`",
+            "观察 Variables 窗口："
+          ]
+        },
+        {
+          "type": "p",
+          "text": "- 检查参数值是否正确 - 查看临时表变量是否为空"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "单步执行 INSERT 语句",
+            "在 Watch 窗口添加 `@@ROWCOUNT` 监视",
+            "验证插入的数据量",
+            "继续执行 SELECT 查询",
+            "检查结果集正确性"
+          ]
+        },
+        {
+          "type": "h3",
+          "text": "第五步：性能优化"
+        },
+        {
+          "type": "p",
+          "text": "根据执行计划优化："
+        },
+        {
+          "type": "code",
+          "text": "-- 创建覆盖索引避免 Key Lookup\nCREATE NONCLUSTERED INDEX IX_Orders_Date_Covered\nON dbo.Orders (OrderDate, Region)\nINCLUDE (CustomerID);\n\nCREATE NONCLUSTERED INDEX IX_OrderItems_OrderID\nON dbo.OrderItems (OrderID)\nINCLUDE (Quantity, UnitPrice);"
+        },
+        {
+          "type": "p",
+          "text": "重新验证性能："
+        },
+        {
+          "type": "code",
+          "text": "-- 再次执行并对比\nSET STATISTICS IO ON;\nEXEC dbo.usp_SalesReport '2026-01-01', '2026-07-18', NULL;\nSET STATISTICS IO OFF;\n\n-- 对比优化前后\n-- 优化前: logical reads 12,345\n-- 优化后: logical reads 2,345 (减少 81%)"
+        }
+      ]
+    },
+    {
+      "id": "s9",
+      "title": "九、常见问题与最佳实践",
+      "badge": "9",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "9.1 连接问题排查"
+        },
+        {
+          "type": "code",
+          "text": "问题 | 解决方案\n连接超时 | 检查 SQL Server 服务是否启动，端口是否正确\nSSL 错误 | 开发环境关闭 SSL 验证（Trust server certificate）\n登录失败 | 确认 SQL Server 身份验证模式和账号权限\n协议错误 | 确认 TCP/IP 协议已启用（SQL Server Configuration Manager）"
+        },
+        {
+          "type": "h3",
+          "text": "9.2 调试失败排查"
+        },
+        {
+          "type": "p",
+          "text": "问题：无法调试存储过程"
+        },
+        {
+          "type": "code",
+          "text": "检查清单：\n├── SQL Server 版本是否支持调试（2019+ 推荐）\n├── DataGrip 是否使用 Debug 配置（非普通运行）\n├── SQL Server 端口 135 是否开放\n├── 数据库端口 1433 是否开放\n├── 账号是否有 sysadmin 权限\n├── CLR 调试是否启用\n└── Windows 防火墙是否放行"
+        },
+        {
+          "type": "p",
+          "text": "问题：断点不命中"
+        },
+        {
+          "type": "code",
+          "text": "解决步骤：\n1. 确认 Debug 配置连接的是正确的数据库\n2. 确认存储过程是最新版本（ALTER 过的）\n3. 在存储过程开头强制 PRINT 验证执行\n4. 检查是否在正确的行设置断点（跳过注释行）\n5. 使用 Debug → Restart 重新启动调试"
+        },
+        {
+          "type": "h3",
+          "text": "9.3 性能优化最佳实践"
+        },
+        {
+          "type": "p",
+          "text": "索引优化："
+        },
+        {
+          "type": "code",
+          "text": "-- 避免过多索引（影响 INSERT/UPDATE 性能）\n-- 建议：\n-- 1. 每个表 3-5 个索引\n-- 2. 优先 WHERE、JOIN、ORDER BY 列\n-- 3. 使用 INCLUDE 创建覆盖索引\n-- 4. 定期检查未使用索引\n\n-- 查看索引使用情况\nSELECT \n    OBJECT_NAME(s.object_id) AS TableName,\n    i.name AS IndexName,\n    s.user_seeks,\n    s.user_scans\nFROM sys.dm_db_index_usage_stats s\nJOIN sys.indexes i ON s.object_id = i.object_id \n    AND s.index_id = i.index_id\nWHERE s.database_id = DB_ID()\nORDER BY s.user_seeks ASC;"
+        },
+        {
+          "type": "p",
+          "text": "统计信息维护："
+        },
+        {
+          "type": "code",
+          "text": "-- 自动更新（默认开启）\nEXEC sp_autostats 'dbo.Orders';\n\n-- 手动更新\nUPDATE STATISTICS dbo.Orders WITH FULLSCAN;\n\n-- 检查过期统计\nSELECT \n    OBJECT_NAME(s.object_id) AS TableName,\n    s.name AS StatisticsName,\n    s.last_updated AS LastUpdated,\n    s.rows AS TotalRows,\n    s.rows_sampled AS SampledRows\nFROM sys.stats s\nJOIN sys.tables t ON s.object_id = t.object_id\nWHERE s.last_updated < DATEADD(DAY, -7, GETDATE());"
+        },
+        {
+          "type": "p",
+          "text": "查询设计："
+        },
+        {
+          "type": "code",
+          "text": "-- 避免：列上的函数（索引失效）\n-- 错误：WHERE DATEADD(DAY, -7, OrderDate) = GETDATE()\n-- 正确：WHERE OrderDate >= DATEADD(DAY, -7, GETDATE())\n\n-- 避免：隐式类型转换\n-- 错误：WHERE varchar_col = 123\n-- 正确：WHERE varchar_col = '123'\n\n-- 避免：使用 NOT IN（可改为 NOT EXISTS）\n-- 错误：WHERE id NOT IN (SELECT id FROM ...)\n-- 正确：WHERE NOT EXISTS (SELECT 1 FROM ... WHERE ...)"
+        },
+        {
+          "type": "h3",
+          "text": "9.4 代码规范"
+        },
+        {
+          "type": "p",
+          "text": "命名约定："
+        },
+        {
+          "type": "ul",
+          "items": [
+            "存储过程：`usp_` + 模块名 + 功能（如 `usp_OrderCreate`）",
+            "标量函数：`ufn_` + 功能（如 `ufn_CalculateDiscount`）",
+            "表值函数：`tf_` + 功能（如 `tf_GetOrderItems`）",
+            "临时表：`#tmp_` + 描述性名称",
+            "表变量：`@tv_` + 描述性名称"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "代码组织："
+        },
+        {
+          "type": "code",
+          "text": "-- 推荐模板\nCREATE PROCEDURE dbo.usp_Example\nAS\nBEGIN\n    SET NOCOUNT ON;\n    SET XACT_ABORT ON;\n    \n    -- 1. 参数校验\n    -- 2. 临时表创建\n    -- 3. 数据准备\n    -- 4. 业务逻辑\n    -- 5. 结果返回\n    \n    BEGIN TRY\n        BEGIN TRANSACTION;\n        \n        -- 业务逻辑\n        \n        COMMIT TRANSACTION;\n    END TRY\n    BEGIN CATCH\n        IF @@TRANCOUNT > 0\n            ROLLBACK TRANSACTION;\n        \n        -- 错误处理\n    END CATCH\nEND;"
+        },
+        {
+          "type": "h3",
+          "text": "9.5 安全注意事项"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "生产环境使用只读账号调试",
+            "重要操作前备份数据",
+            "使用事务保护敏感操作",
+            "禁止在生产环境使用 NOLOCK（除非特殊需求）",
+            "敏感数据字段加密存储"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s10",
+      "title": "附录：常用 SQL Server 调试查询",
+      "badge": "10",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "活动会话监控"
+        },
+        {
+          "type": "code",
+          "text": "SELECT \n    s.session_id,\n    s.login_name,\n    s.host_name,\n    s.program_name,\n    r.status,\n    r.cmd,\n    r.cpu_time,\n    r.logical_reads,\n    r.wait_type\nFROM sys.dm_exec_sessions s\nLEFT JOIN sys.dm_exec_requests r \n    ON s.session_id = r.session_id\nWHERE s.is_user_process = 1\nORDER BY r.cpu_time DESC;"
+        },
+        {
+          "type": "h3",
+          "text": "慢查询分析"
+        },
+        {
+          "type": "code",
+          "text": "SELECT TOP 20\n    SUBSTRING(qt.text, (qs.statement_start_offset/2)+1, \n              ((CASE qs.statement_end_offset \n                WHEN -1 THEN DATALENGTH(qt.text)\n                ELSE qs.statement_end_offset\n              END - qs.statement_start_offset)/2)+1) AS QueryText,\n    qs.execution_count,\n    qs.total_logical_reads,\n    qs.total_logical_reads/qs.execution_count AS AvgReads,\n    qs.cached_time\nFROM sys.dm_exec_query_stats qs\nCROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) qt\nORDER BY qs.total_logical_reads DESC;"
+        },
+        {
+          "type": "h3",
+          "text": "阻塞链分析"
+        },
+        {
+          "type": "code",
+          "text": "SELECT \n    SPID = w.session_id,\n    BlkBy = b.session_id,\n    w.wait_type,\n    w.wait_time,\n    DB_NAME(w.database_id) AS DatabaseName,\n    SUBSTRING(qt.text, 1, 200) AS QueryText\nFROM sys.dm_exec_requests w\nLEFT JOIN sys.dm_exec_requests b \n    ON w.blocking_session_id = b.session_id\nCROSS APPLY sys.dm_exec_sql_text(w.sql_handle) qt\nWHERE w.blocking_session_id IS NOT NULL\n   OR w.session_id IN (SELECT blocking_session_id \n                        FROM sys.dm_exec_requests \n                        WHERE blocking_session_id IS NOT NULL);"
+        },
+        {
+          "type": "info",
+          "text": "文档版本: v1.0 | 最后更新: 2026-07-27 适用版本: DataGrip 2023.3+ / SQL Server 2019+ 维护人: 请根据实际情况更新"
+        }
+      ]
+    }
+  ],
+  "desc": "版本: DataGrip 2023.x+ | 数据库: SQL Server 2019/2022 重点: 调试技巧与高效开发实战"
+}
