@@ -84,12 +84,12 @@
       const n = sec.badge || String(idx + 1);
       const body = renderBlocks(sec.blocks || []);
       return `<div class="accordion-item" data-title="${esc(sec.title || "")}">
-        <div class="accordion-header" onclick="toggleAcc(this)">
+        <div class="accordion-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleAcc(this)}">
           <div class="badge">${esc(n)}</div>
           <div class="accordion-title">${esc(sec.title || "")}</div>
           <div class="accordion-icon">▼</div>
         </div>
-        <div class="accordion-content"><div class="accordion-content-clip"><div class="accordion-inner">${body}</div></div></div>
+        <div class="accordion-content"><div class="accordion-inner">${body}</div></div>
       </div>`;
     }).join("");
   };
@@ -98,14 +98,27 @@
     const item = header.parentElement;
     if (!item) return;
     const willOpen = !item.classList.contains("active");
-    // 可选：同组只开一节，避免多节同时撑开造成错乱感
     const group = item.parentElement;
+
+    // 先记住当前标题相对视口的位置，开合后高度剧变也能滚回来
+    const topBefore = header.getBoundingClientRect().top;
+
     if (group && willOpen) {
       group.querySelectorAll(".accordion-item.active").forEach((el) => {
         if (el !== item) el.classList.remove("active");
       });
     }
     item.classList.toggle("active", willOpen);
+
+    // 超长章节折叠后页面高度骤降，浏览器滚动锚点会跳到列表底部，看起来像章节丢失
+    requestAnimationFrame(function () {
+      const topAfter = header.getBoundingClientRect().top;
+      const delta = topAfter - topBefore;
+      if (Math.abs(delta) > 2) {
+        window.scrollBy(0, delta);
+      }
+      header.scrollIntoView({ block: "nearest", inline: "nearest" });
+    });
   };
 
   window.filterAccordion = function (q) {
