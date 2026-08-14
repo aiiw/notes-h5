@@ -333,19 +333,13 @@ function onVisibilityChange() {
   document.getElementById("private-pwd-box").classList.toggle("hidden", !priv);
 }
 
-function refreshPwdSelect() {
-  const sel = document.getElementById("post-pwd-select");
-  if (!sel) return;
-  const vault = NotesCrypto.loadVault();
-  const entries = vault.entries || [];
-  sel.innerHTML = entries.length
-    ? entries.map((e) => `<option value="${e.id}" ${e.id === vault.defaultId ? "selected" : ""}>${escapeHtml(e.label)}</option>`).join("")
-    : '<option value="">（密码库为空，请先在上方添加）</option>';
-}
-
 function renderVault() {
   const box = document.getElementById("pwd-list");
   if (!box) return;
+  if (typeof NotesCrypto === "undefined") {
+    box.innerHTML = '<div class="muted">加密模块未加载，请强制刷新页面（Ctrl+F5）。</div>';
+    return;
+  }
   const vault = NotesCrypto.loadVault();
   const entries = vault.entries || [];
   if (!entries.length) {
@@ -364,6 +358,20 @@ function renderVault() {
         <button class="btn btn-danger" type="button" onclick="removeVaultPwd('${e.id}')">删除</button>
       </div>
     </div>`).join("");
+}
+
+function refreshPwdSelect() {
+  const sel = document.getElementById("post-pwd-select");
+  if (!sel) return;
+  if (typeof NotesCrypto === "undefined") {
+    sel.innerHTML = '<option value="">（加密模块未加载）</option>';
+    return;
+  }
+  const vault = NotesCrypto.loadVault();
+  const entries = vault.entries || [];
+  sel.innerHTML = entries.length
+    ? entries.map((e) => `<option value="${e.id}" ${e.id === vault.defaultId ? "selected" : ""}>${escapeHtml(e.label)}</option>`).join("")
+    : '<option value="">（密码库为空，请先在上方添加）</option>';
 }
 
 function addVaultPassword() {
