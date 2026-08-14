@@ -18,18 +18,40 @@
     </div>
   </div>
 
-  <div id="login-view" class="panel login-card">
+  <div id="gate-view" class="panel login-card">
+    <h2>后台登录</h2>
+    <p class="muted">请输入管理密码。初始密码为 <b>123456</b>，进入后可自行修改。</p>
+    <div class="field"><label>管理密码</label><input id="gate-password" type="password" placeholder="初始：123456" autocomplete="current-password" /></div>
+    <button class="btn btn-primary" onclick="submitGate()">进入</button>
+    <div id="gate-status" class="status"></div>
+  </div>
+
+  <div id="github-view" class="panel login-card hidden">
     <h2>连接 GitHub</h2>
+    <p class="muted">用于发布内容到仓库。Token 只存在本机浏览器。</p>
     <div class="field"><label>仓库 owner</label><input id="cfg-owner" value="aiiw" /></div>
     <div class="field"><label>仓库名</label><input id="cfg-repo" value="notes-h5" /></div>
     <div class="field"><label>分支</label><input id="cfg-branch" value="main" /></div>
-    <div class="field"><label>Personal Access Token（只存在本机浏览器）</label><input id="cfg-token" type="password" placeholder="ghp_..." autocomplete="off" /></div>
-    <button class="btn btn-primary" onclick="saveConfig()">进入后台</button>
-    <p class="muted" style="margin-top:10px">Token 需要 repo 权限。请勿把 Token 发到聊天或提交到 Git。</p>
+    <div class="field"><label>Personal Access Token</label><input id="cfg-token" type="password" placeholder="ghp_..." autocomplete="off" /></div>
+    <div class="row">
+      <button class="btn btn-primary" onclick="saveConfig()">保存并进入</button>
+      <button class="btn" onclick="backToGate()">返回</button>
+    </div>
     <div id="login-status" class="status"></div>
   </div>
 
   <div id="app-view" class="hidden">
+
+  <div id="admin-pin-view" class="panel" style="margin-top:12px">
+    <h2>修改后台登录密码</h2>
+    <p class="muted">此密码用于进入管理后台，与文章「私密内容」密码无关。保存在本机浏览器。</p>
+    <div class="field"><label>当前密码</label><input id="admin-pin-old" type="password" placeholder="当前管理密码" autocomplete="current-password" /></div>
+    <div class="field"><label>新密码</label><input id="admin-pin-new" type="password" placeholder="至少 4 位" autocomplete="new-password" /></div>
+    <div class="field"><label>确认新密码</label><input id="admin-pin-new2" type="password" placeholder="再输入一次" autocomplete="new-password" /></div>
+    <button class="btn btn-primary" onclick="changeAdminPin()">保存新密码</button>
+    <button class="btn" type="button" onclick="resetAdminPinToDefault()">恢复初始密码 123456</button>
+    <div id="admin-pin-status" class="status"></div>
+  </div>
 
   <div id="pwd-view" class="panel" style="margin-top:12px">
     <h2>密码管理（私密内容）</h2>
