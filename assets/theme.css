@@ -48,23 +48,19 @@ body{
 .menu-title{font-size:16px;font-weight:700;margin-bottom:4px}
 .menu-desc{font-size:13px;color:var(--text-secondary)}
 .menu-meta{font-size:12px;color:var(--text-secondary);margin-top:8px}
-.accordion{display:flex;flex-direction:column;gap:10px}
-.accordion-item{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.accordion{display:flex;flex-direction:column;gap:10px;overflow-anchor:none}
+.accordion-item{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:visible}
 .accordion-item.active{border-color:var(--accent)}
 .accordion-header{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;user-select:none}
 .badge{width:28px;height:28px;border-radius:50%;background:var(--badge-bg);color:var(--badge-text);
   display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
 .accordion-title{flex:1;font-size:15px;font-weight:600}
-.accordion-icon{color:var(--text-secondary);font-size:11px;transition:transform .3s}
+.accordion-icon{color:var(--text-secondary);font-size:11px;transition:transform .2s}
 .accordion-item.active .accordion-icon{transform:rotate(180deg)}
-.accordion-content{
-  display:grid;
-  grid-template-rows:0fr;
-  transition:grid-template-rows .35s ease;
-}
-.accordion-item.active .accordion-content{grid-template-rows:1fr}
-.accordion-content-clip{overflow:hidden;min-height:0}
-.accordion-inner{padding:0 14px 14px}
+/* 不用 max-height / grid 动画，避免超长章节开合后滚动错位、看起来像章节丢失 */
+.accordion-content{display:none}
+.accordion-item.active > .accordion-content{display:block}
+.accordion-inner{padding:0 14px 14px;border-top:1px solid var(--border)}
 .accordion-inner p{margin:8px 0}
 .subheading{font-size:15.5px;font-weight:700;color:var(--accent);margin:16px 0 6px;padding-top:6px;border-top:1px solid var(--border)}
 .accordion-inner .subheading:first-child{border-top:none;margin-top:4px}
