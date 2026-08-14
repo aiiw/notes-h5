@@ -205,13 +205,185 @@ async function bootApp() {
   }
 }
 
+let listCategoryFilter = "";
+
+const DEFAULT_CATEGORIES = [
+  { id: "work", name: "工作", order: 1 },
+  { id: "study", name: "学习", order: 2 },
+  { id: "fun", name: "娱乐", order: 3 },
+];
+
+function ensureCategories() {
+  if (!menu) return;
+  if (!Array.isArray(menu.categories) || !menu.categories.length) {
+    menu.categories = DEFAULT_CATEGORIES.map((x) => ({ ...x }));
+  }
+  menu.categories = menu.categories
+    .map((c, i) => ({
+      id: String(c.id || "").trim() || ("cat-" + (i + 1)),
+      name: String(c.name || c.id || "未命名").trim(),
+      order: c.order || i + 1,
+    }))
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+  const firstId = menu.categories[0] ? menu.categories[0].id : "study";
+  (menu.items || []).forEach((it) => {
+    if (!it.category || !menu.categories.some((c) => c.id === it.category)) {
+      it.category = firstId;
+    }
+  });
+}
+
+function sortedCategories() {
+  ensureCategories();
+  return (menu.categories || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+}
+
+function categoryName(id) {
+  const c = sortedCategories().find((x) => x.id === id);
+  return c ? c.name : (id || "未分类");
+}
+
+function buildMenuPayload() {
+  ensureCategories();
+  return {
+    siteTitle: menu.siteTitle || "",
+    siteIntro: menu.siteIntro || "",
+    categories: sortedCategories().map((c, i) => ({
+      id: c.id,
+      name: c.name,
+      order: c.order || i + 1,
+    })),
+    items: menu.items || [],
+  };
+}
+
+function slugCategoryId(name) {
+  const map = { 工作: "work", 学习: "study", 娱乐: "fun", 生活: "life", 技术: "tech" };
+  if (map[name]) return map[name];
+  let s = String(name || "")
+    .toLowerCase()
+    .replace(/[^\w\-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  if (!/[a-z0-9]/.test(s)) s = "cat-" + Date.now().toString(36);
+  const exist = new Set((menu.categories || []).map((c) => c.id));
+  let id = s.slice(0, 24);
+  let n = 2;
+  while (exist.has(id)) {
+    id = s.slice(0, 20) + "-" + n;
+    n += 1;
+  }
+  return id;
+}
+
+function refreshCategorySelects() {
+  const cats = sortedCategories();
+  const opts = cats.map((c) => `<option value="${escapeAttr(c.id)}">${escapeHtml(c.name)}</option>`).join("");
+  const postSel = document.getElementById("post-category");
+  if (postSel) {
+    const cur = postSel.value;
+    postSel.innerHTML = opts || '<option value="study">学习</option>';
+    if (cur && cats.some((c) => c.id === cur)) postSel.value = cur;
+  }
+  const filter = document.getElementById("list-category-filter");
+  if (filter) {
+    const cur = listCategoryFilter;
+    filter.innerHTML = '<option value="">全部栏目</option>' + opts;
+    filter.value = cur || "";
+  }
+}
+
+function renderCategoryManager() {
+  const box = document.getElementById("category-list");
+  if (!box) return;
+  const cats = sortedCategories();
+  box.innerHTML = cats.map((c, idx) => `
+    <div class="pwd-item">
+      <div style="flex:1">
+        <input class="cat-name" data-id="${escapeAttr(c.id)}" value="${escapeAttr(c.name)}" style="width:100%;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:8px;padding:6px 8px;font-size:13px" />
+        <div class="muted" style="margin-top:4px">${escapeHtml(c.id)} · ${(menu.items || []).filter((x) => x.category === c.id).length} 篇</div>
+      </div>
+      <div class="row">
+        <button class="btn" type="button" onclick="moveCategory('${c.id}',-1)" ${idx === 0 ? "disabled" : ""}>上移</button>
+        <button class="btn" type="button" onclick="moveCategory('${c.id}',1)" ${idx >= cats.length - 1 ? "disabled" : ""}>下移</button>
+        <button class="btn btn-danger" type="button" onclick="removeCategory('${c.id}')">删除</button>
+      </div>
+    </div>`).join("") || '<div class="muted">暂无栏目</div>';
+  refreshCategorySelects();
+}
+
+function syncCategoryNamesFromInputs() {
+  document.querySelectorAll("#category-list .cat-name").forEach((input) => {
+    const id = input.getAttribute("data-id");
+    const c = (menu.categories || []).find((x) => x.id === id);
+    if (c) c.name = input.value.trim() || c.name;
+  });
+}
+
+function addCategory() {
+  ensureCategories();
+  const name = (document.getElementById("cat-new-name").value || "").trim();
+  if (!name) {
+    setStatus("cat-status", "请填写栏目名称", false);
+    return;
+  }
+  syncCategoryNamesFromInputs();
+  const id = slugCategoryId(name);
+  menu.categories.push({ id, name, order: menu.categories.length + 1 });
+  document.getElementById("cat-new-name").value = "";
+  renderCategoryManager();
+  setStatus("cat-status", "已添加，请点「只保存菜单/站点信息」写入 GitHub", true);
+}
+
+function removeCategory(id) {
+  ensureCategories();
+  if (menu.categories.length <= 1) {
+    setStatus("cat-status", "至少保留一个栏目", false);
+    return;
+  }
+  if (!confirm("删除栏目后，其中文章会挪到第一个栏目。确认删除？")) return;
+  syncCategoryNamesFromInputs();
+  menu.categories = menu.categories.filter((c) => c.id !== id);
+  const fallback = menu.categories[0].id;
+  (menu.items || []).forEach((it) => {
+    if (it.category === id) it.category = fallback;
+  });
+  renderCategoryManager();
+  renderList();
+  setStatus("cat-status", "已删除（本地），请保存菜单生效", true);
+}
+
+function moveCategory(id, delta) {
+  syncCategoryNamesFromInputs();
+  const cats = sortedCategories();
+  const idx = cats.findIndex((c) => c.id === id);
+  const j = idx + delta;
+  if (idx < 0 || j < 0 || j >= cats.length) return;
+  const tmp = cats[idx];
+  cats[idx] = cats[j];
+  cats[j] = tmp;
+  cats.forEach((c, i) => { c.order = i + 1; });
+  menu.categories = cats;
+  renderCategoryManager();
+  setStatus("cat-status", "顺序已调整，请保存菜单", true);
+}
+
+function onListCategoryFilter() {
+  const el = document.getElementById("list-category-filter");
+  listCategoryFilter = el ? el.value : "";
+  listPage = 1;
+  renderList();
+}
+
 async function reloadAll() {
   const file = await getFile("content/menu.json");
   menu = JSON.parse(file.content);
   menu._sha = file.sha;
+  ensureCategories();
   document.getElementById("site-title").value = menu.siteTitle || "";
   document.getElementById("site-intro").value = menu.siteIntro || "";
-  const items = (menu.items || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  renderCategoryManager();
+  const items = sortedItems();
   const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   if (listPage > pages) listPage = pages;
   renderList();
@@ -220,7 +392,11 @@ async function reloadAll() {
 }
 
 function sortedItems() {
-  return (menu.items || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  let items = (menu.items || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  if (listCategoryFilter) {
+    items = items.filter((x) => (x.category || "") === listCategoryFilter);
+  }
+  return items;
 }
 
 function renderList() {
@@ -235,7 +411,7 @@ function renderList() {
   box.innerHTML = pageItems.map((it) => `
     <div class="list-item ${it.id === currentId ? "active" : ""}" onclick="selectPost('${it.id}')">
       <div><strong>${escapeHtml(it.title || it.id)}</strong>${it.private ? '<span class="badge-priv">私密</span>' : ""}</div>
-      <div class="muted">${escapeHtml(it.id)} · ${it.enabled === false ? "隐藏" : "显示"}</div>
+      <div class="muted">${escapeHtml(categoryName(it.category))} · ${escapeHtml(it.id)} · ${it.enabled === false ? "隐藏" : "显示"}</div>
     </div>`).join("") || '<div class="muted">暂无文章</div>';
 
   const pager = document.getElementById("post-pager");
@@ -283,6 +459,8 @@ async function fillEditor(post) {
   const mi = (menu.items || []).find((x) => x.id === post.id) || {};
   document.getElementById("post-desc").value = mi.desc || post.desc || "";
   document.getElementById("post-enabled").value = String(mi.enabled !== false);
+  refreshCategorySelects();
+  document.getElementById("post-category").value = mi.category || (sortedCategories()[0] && sortedCategories()[0].id) || "study";
   const isPrivate = !!(post.private || mi.private || post.enc);
   document.getElementById("post-visibility").value = isPrivate ? "private" : "public";
   window._postSha = post._sha || null;
@@ -314,6 +492,8 @@ function fillEditorPlain(post) {
   document.getElementById("post-intro").value = post.intro || "";
   document.getElementById("post-desc").value = post.desc || "";
   document.getElementById("post-enabled").value = String(post.enabled !== false);
+  refreshCategorySelects();
+  document.getElementById("post-category").value = post.category || (sortedCategories()[0] && sortedCategories()[0].id) || "study";
   document.getElementById("post-visibility").value = post.private ? "private" : "public";
   window._postSha = post._sha || null;
   onVisibilityChange();
@@ -494,12 +674,15 @@ function collectPost() {
 
 async function saveMenuOnly() {
   try {
+    syncCategoryNamesFromInputs();
     menu.siteTitle = document.getElementById("site-title").value.trim();
     menu.siteIntro = document.getElementById("site-intro").value.trim();
-    const payload = { siteTitle: menu.siteTitle, siteIntro: menu.siteIntro, items: menu.items || [] };
+    const payload = buildMenuPayload();
     const res = await putFile("content/menu.json", JSON.stringify(payload, null, 2) + "\n", "chore: update site menu", menu._sha);
     menu._sha = res.content.sha;
-    setStatus("save-status", "菜单已保存", true);
+    renderCategoryManager();
+    setStatus("save-status", "菜单/栏目已保存", true);
+    setStatus("cat-status", "栏目已保存到 GitHub", true);
   } catch (e) {
     setStatus("save-status", "保存失败：" + e.message, false);
   }
@@ -511,6 +694,7 @@ async function savePost() {
     const post = collectPost();
     const enabled = document.getElementById("post-enabled").value === "true";
     const desc = document.getElementById("post-desc").value.trim();
+    const category = document.getElementById("post-category").value || (sortedCategories()[0] && sortedCategories()[0].id) || "study";
 
     let publishBody;
     if (isPrivate) {
@@ -560,12 +744,14 @@ async function savePost() {
       updated: post.updated.slice(0, 10),
       enabled,
       private: isPrivate,
+      category,
       order: idx >= 0 ? (menu.items[idx].order || idx + 1) : (menu.items.length + 1),
     };
     if (idx >= 0) menu.items[idx] = item; else menu.items.push(item);
+    syncCategoryNamesFromInputs();
     menu.siteTitle = document.getElementById("site-title").value.trim();
     menu.siteIntro = document.getElementById("site-intro").value.trim();
-    const menuPayload = { siteTitle: menu.siteTitle, siteIntro: menu.siteIntro, items: menu.items };
+    const menuPayload = buildMenuPayload();
     try {
       const latest = await getFile("content/menu.json");
       menu._sha = latest.sha;
@@ -573,6 +759,7 @@ async function savePost() {
     const mres = await putFile("content/menu.json", JSON.stringify(menuPayload, null, 2) + "\n", `menu: upsert ${post.id}`, menu._sha);
     menu._sha = mres.content.sha;
     currentId = post.id;
+    renderCategoryManager();
     renderList();
     setStatus("save-status", isPrivate ? "已加密发布到 GitHub（私密）。" : "已发布到 GitHub。Pages 约 1 分钟可刷新查看。", true);
   } catch (e) {
@@ -593,11 +780,10 @@ async function deletePost() {
     menu.items = (menu.items || []).filter((x) => x.id !== id);
     const latest = await getFile("content/menu.json");
     menu._sha = latest.sha;
-    const menuPayload = {
-      siteTitle: document.getElementById("site-title").value.trim(),
-      siteIntro: document.getElementById("site-intro").value.trim(),
-      items: menu.items,
-    };
+    const menuPayload = buildMenuPayload();
+    menuPayload.siteTitle = document.getElementById("site-title").value.trim();
+    menuPayload.siteIntro = document.getElementById("site-intro").value.trim();
+    menuPayload.items = menu.items;
     const mres = await putFile("content/menu.json", JSON.stringify(menuPayload, null, 2) + "\n", `menu: remove ${id}`, menu._sha);
     menu._sha = mres.content.sha;
     currentId = menu.items[0] ? menu.items[0].id : null;
@@ -618,6 +804,9 @@ function newPost() {
     id,
     title: "新文章",
     intro: "",
+    category: (document.getElementById("list-category-filter") && document.getElementById("list-category-filter").value)
+      || (sortedCategories()[0] && sortedCategories()[0].id)
+      || "study",
     sections: [{ title: "第一节", badge: "1", blocks: [{ type: "p", text: "开始写内容" }, { type: "code", text: "示例代码" }] }],
     private: false,
   });
@@ -753,6 +942,10 @@ async function publishQueue(queue, statusId, emptyMsg) {
     menu = JSON.parse(menuFile.content);
     menu._sha = menuFile.sha;
     menu.items = menu.items || [];
+    ensureCategories();
+    const defaultCat = (document.getElementById("list-category-filter") && document.getElementById("list-category-filter").value)
+      || (sortedCategories()[0] && sortedCategories()[0].id)
+      || "study";
 
     let ok = 0;
     for (const item of queue) {
@@ -778,6 +971,7 @@ async function publishQueue(queue, statusId, emptyMsg) {
         updated: (post.updated || "").slice(0, 10),
         enabled: true,
         private: false,
+        category: post.category || (idx >= 0 ? menu.items[idx].category : null) || defaultCat,
         order: idx >= 0 ? (menu.items[idx].order || idx + 1) : menu.items.length + 1,
       };
       if (idx >= 0) menu.items[idx] = menuItem; else menu.items.push(menuItem);
@@ -785,10 +979,10 @@ async function publishQueue(queue, statusId, emptyMsg) {
       setStatus(statusId, `已发布 ${ok}/${queue.length}：${post.id}`, true);
     }
     menu.siteTitle = document.getElementById("site-title").value.trim() || menu.siteTitle;
-    menu.siteIntro = document.getElementById("site-intro").value.trim() || menu.siteIntro || "支持 Markdown / HTML / Word / Excel 导入";
+    menu.siteIntro = document.getElementById("site-intro").value.trim() || menu.siteIntro || "支持栏目分类与多种导入";
     const latest = await getFile("content/menu.json");
     menu._sha = latest.sha;
-    const payload = { siteTitle: menu.siteTitle, siteIntro: menu.siteIntro, items: menu.items };
+    const payload = buildMenuPayload();
     const mres = await putFile("content/menu.json", JSON.stringify(payload, null, 2) + "\n", "menu: batch import", menu._sha);
     menu._sha = mres.content.sha;
     await reloadAll();
