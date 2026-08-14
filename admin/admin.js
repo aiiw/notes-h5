@@ -1,4 +1,7 @@
 const CFG_KEY = "notes-h5-cms-config";
+const GATE_SESSION = "notes-h5-admin-gate";
+const ADMIN_PIN_KEY = "notes-h5-admin-pin";
+const DEFAULT_ADMIN_PIN = "123456";
 let menu = null;
 let currentId = null;
 let listPage = 1;
@@ -14,19 +17,111 @@ function setStatus(id, msg, ok) {
   el.textContent = msg || "";
   el.className = "status " + (ok === true ? "ok" : ok === false ? "err" : "");
 }
+
+function getStoredAdminPin() {
+  return localStorage.getItem(ADMIN_PIN_KEY) || DEFAULT_ADMIN_PIN;
+}
+function isGateOpen() {
+  return sessionStorage.getItem(GATE_SESSION) === "1";
+}
+function openGateSession() {
+  sessionStorage.setItem(GATE_SESSION, "1");
+}
+function closeGateSession() {
+  sessionStorage.removeItem(GATE_SESSION);
+}
+
+function showOnly(viewId) {
+  ["gate-view", "github-view", "app-view"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("hidden", id !== viewId);
+  });
+}
+
+function submitGate() {
+  const input = document.getElementById("gate-password");
+  const pwd = (input && input.value) || "";
+  if (pwd !== getStoredAdminPin()) {
+    setStatus("gate-status", "密码错误", false);
+    return;
+  }
+  openGateSession();
+  setStatus("gate-status", "", null);
+  afterGateOk();
+}
+
+function backToGate() {
+  closeGateSession();
+  showOnly("gate-view");
+  const input = document.getElementById("gate-password");
+  if (input) input.value = "";
+}
+
+function afterGateOk() {
+  const c = cfg();
+  if (!c || !c.token) {
+    showOnly("github-view");
+    if (c) {
+      document.getElementById("cfg-owner").value = c.owner || "aiiw";
+      document.getElementById("cfg-repo").value = c.repo || "notes-h5";
+      document.getElementById("cfg-branch").value = c.branch || "main";
+    }
+    setStatus("login-status", "请填写 GitHub Token 后进入（只需配置一次）", null);
+    return;
+  }
+  bootApp();
+}
+
 function logout() {
-  localStorage.removeItem(CFG_KEY);
+  // 只退出本次会话，保留 GitHub 配置与管理密码，避免再次进不去
+  closeGateSession();
   location.reload();
 }
+
+function changeAdminPin() {
+  const oldPwd = document.getElementById("admin-pin-old").value;
+  const n1 = document.getElementById("admin-pin-new").value;
+  const n2 = document.getElementById("admin-pin-new2").value;
+  if (oldPwd !== getStoredAdminPin()) {
+    setStatus("admin-pin-status", "当前密码不正确", false);
+    return;
+  }
+  if (!n1 || n1.length < 4) {
+    setStatus("admin-pin-status", "新密码至少 4 位", false);
+    return;
+  }
+  if (n1 !== n2) {
+    setStatus("admin-pin-status", "两次新密码不一致", false);
+    return;
+  }
+  localStorage.setItem(ADMIN_PIN_KEY, n1);
+  document.getElementById("admin-pin-old").value = "";
+  document.getElementById("admin-pin-new").value = "";
+  document.getElementById("admin-pin-new2").value = "";
+  setStatus("admin-pin-status", "后台登录密码已更新（仅本机浏览器）", true);
+}
+
+function resetAdminPinToDefault() {
+  if (!confirm("确认恢复初始管理密码 123456？")) return;
+  localStorage.setItem(ADMIN_PIN_KEY, DEFAULT_ADMIN_PIN);
+  setStatus("admin-pin-status", "已恢复为 123456", true);
+}
+
 function saveConfig() {
+  if (!isGateOpen()) {
+    setStatus("login-status", "请先通过管理密码登录", false);
+    return;
+  }
+  const existing = cfg() || {};
+  const tokenInput = document.getElementById("cfg-token").value.trim();
   const c = {
-    owner: document.getElementById("cfg-owner").value.trim(),
-    repo: document.getElementById("cfg-repo").value.trim(),
+    owner: document.getElementById("cfg-owner").value.trim() || "aiiw",
+    repo: document.getElementById("cfg-repo").value.trim() || "notes-h5",
     branch: document.getElementById("cfg-branch").value.trim() || "main",
-    token: document.getElementById("cfg-token").value.trim(),
+    token: tokenInput || existing.token || "",
   };
   if (!c.owner || !c.repo || !c.token) {
-    setStatus("login-status", "请填完整", false);
+    setStatus("login-status", "请填完整（Token 必填）", false);
     return;
   }
   localStorage.setItem(CFG_KEY, JSON.stringify(c));
@@ -79,21 +174,34 @@ async function deleteFile(path, sha, message) {
 }
 
 async function bootApp() {
+  if (!isGateOpen()) {
+    showOnly("gate-view");
+    return;
+  }
   const c = cfg();
-  if (!c) return;
-  document.getElementById("login-view").classList.add("hidden");
-  document.getElementById("app-view").classList.remove("hidden");
-  document.getElementById("cfg-owner").value = c.owner;
-  document.getElementById("cfg-repo").value = c.repo;
+  if (!c || !c.token) {
+    showOnly("github-view");
+    setStatus("login-status", "请先配置 GitHub Token", false);
+    return;
+  }
+  document.getElementById("cfg-owner").value = c.owner || "aiiw";
+  document.getElementById("cfg-repo").value = c.repo || "notes-h5";
+  document.getElementById("cfg-branch").value = c.branch || "main";
   try {
+    showOnly("app-view");
     renderVault();
     refreshPwdSelect();
     await reloadAll();
     setStatus("login-status", "已连接 " + c.owner + "/" + c.repo, true);
   } catch (e) {
-    document.getElementById("login-view").classList.remove("hidden");
-    document.getElementById("app-view").classList.add("hidden");
-    setStatus("login-status", "连接失败：" + e.message, false);
+    showOnly("github-view");
+    document.getElementById("cfg-token").value = "";
+    const bad = cfg();
+    if (bad) {
+      delete bad.token;
+      localStorage.setItem(CFG_KEY, JSON.stringify(bad));
+    }
+    setStatus("login-status", "GitHub 连接失败：" + e.message + "。请重新填写有效 Token（需 repo 权限）", false);
   }
 }
 
@@ -511,7 +619,17 @@ function newPost() {
   renderList();
 }
 
-if (cfg()) bootApp();
+// 启动：先过管理密码门，再进 GitHub / 后台
+(function initAdminBoot() {
+  const gateInput = document.getElementById("gate-password");
+  if (gateInput) {
+    gateInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitGate();
+    });
+  }
+  if (isGateOpen()) afterGateOk();
+  else showOnly("gate-view");
+})();
 
 /* ===== batch import ===== */
 let importQueue = [];
