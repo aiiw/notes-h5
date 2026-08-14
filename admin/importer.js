@@ -42,8 +42,17 @@ window.NotesImporter = (function () {
     text = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
     const lines = text.split("\n");
     let title = "未命名";
+    let category = "";
+    let idMeta = "";
     for (const ln of lines) {
       if (ln.startsWith("# ")) { title = ln.slice(2).trim(); break; }
+    }
+    for (const ln of lines) {
+      if (ln.startsWith("## ")) break;
+      const m1 = ln.match(/^(?:CATEGORY|栏目|分类)\s*[:：]\s*(.+)$/i);
+      if (m1) { category = m1[1].trim(); continue; }
+      const m2 = ln.match(/^ID\s*[:：]\s*(.+)$/i);
+      if (m2) { idMeta = m2[1].trim(); continue; }
     }
     const introParts = [];
     for (const ln of lines) {
@@ -75,11 +84,12 @@ window.NotesImporter = (function () {
       idx += 1;
       sections.push({ id: "s" + idx, title: sec.title, badge: String(idx), blocks });
     }
-    const id = forcedId || slugify(title, "post-" + Date.now().toString(36));
+    const id = forcedId || idMeta || slugify(title, "post-" + Date.now().toString(36));
     return {
       id,
       title,
       intro: intro || title,
+      category: category || "",
       updated: new Date().toISOString(),
       sections,
       desc: intro || title,
