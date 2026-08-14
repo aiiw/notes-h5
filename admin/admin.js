@@ -249,6 +249,26 @@ function categoryName(id) {
   return c ? c.name : (id || "未分类");
 }
 
+function resolveCategoryId(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  const cats = sortedCategories();
+  const byId = cats.find((c) => c.id === s || c.id.toLowerCase() === s.toLowerCase());
+  if (byId) return byId.id;
+  const byName = cats.find((c) => c.name === s);
+  if (byName) return byName.id;
+  // fuzzy: 包含关系
+  const fuzzy = cats.find((c) => s.includes(c.name) || c.name.includes(s));
+  return fuzzy ? fuzzy.id : "";
+}
+
+function getImportDefaultCategory(selectId) {
+  const el = document.getElementById(selectId);
+  if (el && el.value) return el.value;
+  if (listCategoryFilter) return listCategoryFilter;
+  return (sortedCategories()[0] && sortedCategories()[0].id) || "study";
+}
+
 function buildMenuPayload() {
   ensureCategories();
   return {
@@ -297,6 +317,11 @@ function refreshCategorySelects() {
     filter.innerHTML = '<option value="">全部栏目</option>' + opts;
     filter.value = cur || "";
   }
+  document.querySelectorAll(".import-category-select").forEach((sel) => {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">用筛选栏/第一个栏目</option>' + opts;
+    if (cur && cats.some((c) => c.id === cur)) sel.value = cur;
+  });
 }
 
 function renderCategoryManager() {
@@ -871,8 +896,9 @@ async function previewImport() {
   for (const f of files) {
     try {
       const post = await NotesImporter.fileToPost(f);
-      importQueue.push({ fileName: f.name, post });
-      lines.push(`✅ ${f.name} → <b>${post.id}</b> · ${post.title} · ${post.sections.length} 个折叠章节`);
+      importQueue.push({ fileName: f.name, post, categorySelectId: "import-category" });
+      const cat = resolveCategoryId(post.category) || getImportDefaultCategory("import-category");
+      lines.push(`✅ ${f.name} → <b>${post.id}</b> · ${post.title} · ${post.sections.length} 节 · 栏目：${categoryName(cat)}`);
     } catch (e) {
       lines.push(`❌ ${f.name} 解析失败：${e.message}`);
     }
@@ -894,10 +920,11 @@ async function previewHtmlImport() {
   for (const f of files) {
     try {
       const post = await NotesImporter.fileToPost(f, { mode: "tutorial-html" });
-      htmlImportQueue.push({ fileName: f.name, post });
+      htmlImportQueue.push({ fileName: f.name, post, categorySelectId: "html-import-category" });
       const sample = (post.sections || []).slice(0, 3).map((s) => s.title).join("；");
+      const cat = resolveCategoryId(post.category) || getImportDefaultCategory("html-import-category");
       lines.push(
-        `✅ ${f.name} → <b>${post.id}</b> · ${post.title} · <b>${post.sections.length}</b> 个折叠章节` +
+        `✅ ${f.name} → <b>${post.id}</b> · ${post.title} · <b>${post.sections.length}</b> 节 · 栏目：${categoryName(cat)}` +
         (sample ? `<br>&nbsp;&nbsp;章节示例：${sample}${post.sections.length > 3 ? "…" : ""}` : "")
       );
     } catch (e) {
@@ -922,8 +949,9 @@ async function previewOfficeImport() {
     try {
       const posts = await NotesOfficeImporter.fileToPosts(f);
       for (const post of posts) {
-        officeImportQueue.push({ fileName: f.name, post });
-        lines.push(`✅ ${f.name} → <b>${post.id}</b> · ${post.title} · ${post.sections.length} 节`);
+        officeImportQueue.push({ fileName: f.name, post, categorySelectId: "office-import-category" });
+        const cat = resolveCategoryId(post.category) || getImportDefaultCategory("office-import-category");
+        lines.push(`✅ ${f.name} → <b>${post.id}</b> · ${post.title} · ${post.sections.length} 节 · 栏目：${categoryName(cat)}`);
       }
     } catch (e) {
       lines.push(`❌ ${f.name} 解析失败：${e.message}`);
@@ -949,9 +977,6 @@ async function publishQueue(queue, statusId, emptyMsg) {
     menu._sha = menuFile.sha;
     menu.items = menu.items || [];
     ensureCategories();
-    const defaultCat = (document.getElementById("list-category-filter") && document.getElementById("list-category-filter").value)
-      || (sortedCategories()[0] && sortedCategories()[0].id)
-      || "study";
 
     let ok = 0;
     for (const item of queue) {
@@ -963,6 +988,7 @@ async function publishQueue(queue, statusId, emptyMsg) {
       } catch (e) {}
       const body = { ...post, private: false };
       delete body.desc;
+      delete body.category;
       await putFile(
         `content/posts/${post.id}.json`,
         JSON.stringify(body, null, 2) + "\n",
@@ -970,6 +996,8 @@ async function publishQueue(queue, statusId, emptyMsg) {
         sha
       );
       const idx = menu.items.findIndex((x) => x.id === post.id);
+      const fromFile = resolveCategoryId(post.category);
+      const fallback = getImportDefaultCategory(item.categorySelectId || "import-category");
       const menuItem = {
         id: post.id,
         title: post.title,
@@ -977,12 +1005,12 @@ async function publishQueue(queue, statusId, emptyMsg) {
         updated: (post.updated || "").slice(0, 10),
         enabled: true,
         private: false,
-        category: post.category || (idx >= 0 ? menu.items[idx].category : null) || defaultCat,
+        category: fromFile || (idx >= 0 ? menu.items[idx].category : null) || fallback,
         order: idx >= 0 ? (menu.items[idx].order || idx + 1) : menu.items.length + 1,
       };
       if (idx >= 0) menu.items[idx] = menuItem; else menu.items.push(menuItem);
       ok += 1;
-      setStatus(statusId, `已发布 ${ok}/${queue.length}：${post.id}`, true);
+      setStatus(statusId, `已发布 ${ok}/${queue.length}：${post.id} → ${categoryName(menuItem.category)}`, true);
     }
     menu.siteTitle = document.getElementById("site-title").value.trim() || menu.siteTitle;
     menu.siteIntro = document.getElementById("site-intro").value.trim() || menu.siteIntro || "支持栏目分类与多种导入";
