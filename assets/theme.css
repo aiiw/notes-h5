@@ -91,3 +91,9 @@ body{
 .status{font-size:13px}
 .status.err{color:var(--warning-border)}
 .status.ok{color:var(--tip-border)}
+.cat-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.cat-tabs::-webkit-scrollbar{display:none}
+.cat-tab{flex:0 0 auto;border:1px solid var(--border);background:var(--card-bg);color:var(--text);border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.cat-tab.active{background:var(--accent);color:var(--badge-text);border-color:var(--accent)}
+.cat-count{font-size:11px;opacity:.85;min-width:18px;height:18px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:rgba(0,0,0,.12);padding:0 5px}
+.cat-tab.active .cat-count{background:rgba(255,255,255,.22)}
