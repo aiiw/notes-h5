@@ -26,3 +26,9 @@ body{padding-top:0}
 .status.ok{color:var(--tip-border)}
 .status.err{color:var(--warning-border)}
 .login-card{max-width:480px;margin:40px auto}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 0 4px;font-size:12px;color:var(--text-secondary)}
+.pager .row{margin:0}
+.badge-priv{display:inline-block;font-size:11px;padding:1px 6px;border-radius:999px;border:1px solid var(--warning-border);color:var(--warning-border);margin-left:6px}
+.lock-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px 16px;margin:12px 0;text-align:center}
+.lock-card input{width:100%;max-width:280px;margin:10px auto;display:block;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:8px;padding:10px 12px}
+.pwd-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:13px}
