@@ -2,9 +2,21 @@
   "siteTitle": "aiiw 笔记站",
   "siteIntro": "手机友好的 H5 笔记站。支持栏目分类、折叠阅读、菜单搜索、Word/Excel 导入与私密加密文章。",
   "categories": [
-    { "id": "work", "name": "工作", "order": 1 },
-    { "id": "study", "name": "学习", "order": 2 },
-    { "id": "fun", "name": "娱乐", "order": 3 }
+    {
+      "id": "work",
+      "name": "工作",
+      "order": 1
+    },
+    {
+      "id": "study",
+      "name": "学习",
+      "order": 2
+    },
+    {
+      "id": "fun",
+      "name": "娱乐",
+      "order": 3
+    }
   ],
   "items": [
     {
@@ -51,6 +63,16 @@
       "enabled": true,
       "category": "work",
       "order": 5
+    },
+    {
+      "id": "post-20260814162608",
+      "title": "示例文章",
+      "desc": "一句话简介",
+      "updated": "2026-08-14",
+      "enabled": true,
+      "private": false,
+      "category": "study",
+      "order": 6
     }
   ]
 }
