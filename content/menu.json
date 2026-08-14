@@ -1,6 +1,6 @@
 {
   "siteTitle": "aiiw 笔记站",
-  "siteIntro": "手机友好的 H5 笔记。点进文章后可折叠展开；右上角可进入管理后台继续发布/编辑。",
+  "siteIntro": "手机友好的 H5 笔记站。支持折叠阅读；管理后台可批量导入 Markdown / H5 并一键发布。",
   "items": [
     {
       "id": "welcome",
@@ -17,6 +17,22 @@
       "updated": "2026-08-14",
       "enabled": true,
       "order": 2
+    },
+    {
+      "id": "excel-lambda-dynamic-arrays",
+      "title": "Excel 高阶公式：LAMBDA 与动态数组",
+      "desc": "LAMBDA / MAP / SCAN / FILTER / XLOOKUP 等高阶动态数组",
+      "updated": "2026-08-14",
+      "enabled": true,
+      "order": 3
+    },
+    {
+      "id": "excel-common-formulas-pivot",
+      "title": "Excel 常用公式与数据透视表教程",
+      "desc": "常用公式 + 数据透视表/透视图系统教程",
+      "updated": "2026-08-14",
+      "enabled": true,
+      "order": 4
     }
   ]
 }
