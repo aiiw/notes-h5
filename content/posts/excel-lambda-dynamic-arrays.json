@@ -1,0 +1,1006 @@
+{
+  "id": "excel-lambda-dynamic-arrays",
+  "title": "Excel 高阶公式：LAMBDA 与动态数组",
+  "intro": "本教程聚焦 Excel Microsoft 365 的高阶函数：LAMBDA、MAP、SCAN、REDUCE、BYROW、LET 及数组变形函数。 这些函数让 Excel 公式具备了\"循环\"和\"自定义函数\"能力，是公式从\"计算器\"升级为\"编程语言\"的关键。 创建日期: 2026-08-09 | 维护人: jdx",
+  "updated": "2026-08-14T03:21:44Z",
+  "sections": [
+    {
+      "id": "s1",
+      "title": "一、LET — 公式内变量定义",
+      "badge": "1",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "LET 是所有高阶公式的基础——在公式内部定义变量，避免重复计算，让长公式变得可读。"
+        },
+        {
+          "type": "code",
+          "text": "=LET(\n    变量名1, 值1,\n    变量名2, 值2,\n    ...,\n    最终计算\n)"
+        },
+        {
+          "type": "h3",
+          "text": "基本用法"
+        },
+        {
+          "type": "code",
+          "text": "/* 不用 LET：重复计算 VLOOKUP 两次 */\n=IF(VLOOKUP(A2, $B$2:$D$500, 3, FALSE) > 100,\n    VLOOKUP(A2, $B$2:$D$500, 3, FALSE) * 1.1,\n    VLOOKUP(A2, $B$2:$D$500, 3, FALSE) * 0.9)\n\n/* 用 LET：只查一次，复用结果 */\n=LET(\n    查找结果, XLOOKUP(A2, $B$2:$B$500, $D$2:$D$500, 0),\n    IF(查找结果 > 100, 查找结果 * 1.1, 查找结果 * 0.9)\n)"
+        },
+        {
+          "type": "h3",
+          "text": "多级变量（变量可引用前面的变量）"
+        },
+        {
+          "type": "code",
+          "text": "/* 计算去掉最大最小值后的平均值 */\n=LET(\n    数据, A2:A20,\n    最大值, MAX(数据),\n    最小值, MIN(数据),\n    总和, SUM(数据),\n    个数, COUNT(数据),\n    (总和 - 最大值 - 最小值) / (个数 - 2)\n)"
+        },
+        {
+          "type": "h3",
+          "text": "结合 FILTER 和 XLOOKUP"
+        },
+        {
+          "type": "code",
+          "text": "/* 先筛选，再查找，最后判断 */\n=LET(\n    合格记录, FILTER(A2:E500, D2:D500=\"合格\"),\n    目标行, XLOOKUP(A2, INDEX(合格记录, 0, 2), INDEX(合格记录, 0, 5), \"\"),\n    IF(目标行=\"\", \"无合格记录\", 目标行)\n)"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法：当同一个子公式在公式中出现 2 次以上时，用 LET 提取为变量。这是性能优化的第一步。"
+        },
+        {
+          "type": "warning",
+          "text": "风险点：变量名不能与单元格引用冲突（如 A1、C2），也不能与 Excel 内置函数名冲突。建议用中文变量名，既清晰又不会冲突。"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "title": "二、LAMBDA — 自定义函数",
+      "badge": "2",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "LAMBDA 让你像写函数一样定义自己的公式，参数可以任意命名，甚至支持递归调用。"
+        },
+        {
+          "type": "code",
+          "text": "=LAMBDA(参数1, 参数2, ..., 计算表达式)(实际值1, 实际值2, ...)"
+        },
+        {
+          "type": "h3",
+          "text": "基本用法"
+        },
+        {
+          "type": "code",
+          "text": "/* 定义一个计算含税价格的函数 */\n=LAMBDA(价格, 税率, ROUND(价格 * (1 + 税率), 2))(100, 0.13)\n/* 返回 113.00 */\n\n/* 定义一个判断等级的函数 */\n=LAMBDA(分数,\n    IFS(分数 >= 90, \"优秀\",\n        分数 >= 80, \"良好\",\n        分数 >= 60, \"及格\",\n        TRUE, \"不及格\")\n)(A2)"
+        },
+        {
+          "type": "h3",
+          "text": "注册为名称管理器（推荐用法）"
+        },
+        {
+          "type": "p",
+          "text": "每次写 `LAMBDA(...)(值)` 太冗长。注册到名称管理器后，可以像内置函数一样使用。"
+        },
+        {
+          "type": "code",
+          "text": "/* 步骤：公式 → 名称管理器 → 新建 */\n/* 名称：含税价格 */\n/* 引用位置：=LAMBDA(价格, 税率, ROUND(价格 * (1 + 税率), 2)) */\n\n/* 之后在任意单元格直接使用 */\n=含税价格(100, 0.13)           /* 返回 113.00 */\n=含税价格(B2, 0.06)            /* 对 B2 按 6% 税率计算 */"
+        },
+        {
+          "type": "h3",
+          "text": "常用自定义函数模板"
+        },
+        {
+          "type": "code",
+          "text": "/* 1. 安全除法（防除零） */\n/* 名称：安全除法 */\n=LAMBDA(被除数, 除数, IF(除数 = 0, 0, ROUND(被除数 / 除数, 2)))\n\n/* 2. 多条件查找并返回指定列 */\n/* 名称：多条件查找 */\n=LAMBDA(查找值1, 查找值2, 查找区域1, 查找区域2, 返回区域,\n    LET(\n        匹配行, (查找区域1 = 查找值1) * (查找区域2 = 查找值2),\n        FILTER(返回区域, 匹配行, \"未找到\")\n    )\n)\n\n/* 3. 取第N大的不重复值 */\n/* 名称：第N大唯一值 */\n=LAMBDA(区域, N, LARGE(UNIQUE(区域), N))\n\n/* 4. 模糊匹配查找 */\n/* 名称：模糊查找 */\n=LAMBDA(关键词, 查找区域, 返回区域,\n    LET(\n        匹配, ISNUMBER(SEARCH(关键词, 查找区域)),\n        FILTER(返回区域, 匹配, \"未找到\")\n    )\n)"
+        },
+        {
+          "type": "h3",
+          "text": "递归 LAMBDA（高级）"
+        },
+        {
+          "type": "p",
+          "text": "LAMBDA 可以调用自身实现递归，前提是已注册为名称。"
+        },
+        {
+          "type": "code",
+          "text": "/* 名称：计算阶乘 */\n/* 引用位置：=LAMBDA(n, IF(n <= 1, 1, n * 计算阶乘(n - 1))) */\n\n=计算阶乘(5)    /* 返回 120 */\n\n/* 名称：斐波那契数列 */\n/* 引用位置：=LAMBDA(n, IF(n <= 2, 1, 斐波那契(n-1) + 斐波那契(n-2))) */\n\n=斐波那契(10)   /* 返回 55 */"
+        },
+        {
+          "type": "warning",
+          "text": "固定写法：递归 LAMBDA 必须注册为名称，否则无法在公式内调用自身。递归深度不宜超过 100 层，否则可能栈溢出。"
+        },
+        {
+          "type": "warning",
+          "text": "风险点： 1. 递归如果没有终止条件，会导致循环引用错误 2. LAMBDA 最多支持 253 个参数 3. 直接在单元格使用 LAMBDA 时末尾必须加 (实际参数)，否则只返回 LAMBDA 定义本身"
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "title": "三、MAP — 逐元素映射",
+      "badge": "3",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "MAP 对数组中的每个元素应用一个 LAMBDA 函数，返回相同大小的结果数组。相当于编程中的 `map()` 函数。"
+        },
+        {
+          "type": "code",
+          "text": "=MAP(数组1, [数组2], ..., LAMBDA(参数1, [参数2], ..., 计算))"
+        },
+        {
+          "type": "h3",
+          "text": "基本用法"
+        },
+        {
+          "type": "code",
+          "text": "/* 对每个值乘以 1.1 */\n=MAP(A2:A10, LAMBDA(x, x * 1.1))\n\n/* 对每个值判断是否大于平均 */\n=MAP(A2:A10, LAMBDA(x, IF(x > AVERAGE(A2:A10), \"高\", \"低\")))\n\n/* 每个值加上前缀 */\n=MAP(A2:A10, LAMBDA(x, \"M-\" & x))"
+        },
+        {
+          "type": "h3",
+          "text": "多数组并行映射"
+        },
+        {
+          "type": "code",
+          "text": "/* 两个数组对应位置相乘 */\n=MAP(A2:A10, B2:B10, LAMBDA(数量, 单价, 数量 * 单价))\n\n/* 三个数组组合判断 */\n=MAP(A2:A10, B2:B10, C2:C10, LAMBDA(组别, 状态, 产量,\n    组别 & \"-\" & 状态 & \"-\" & 产量\n))"
+        },
+        {
+          "type": "h3",
+          "text": "配合 XLOOKUP 批量查找"
+        },
+        {
+          "type": "code",
+          "text": "/* 对 A 列每个编号查找对应的重量 */\n=MAP(A2:A50, LAMBDA(编号,\n    XLOOKUP(编号, Sheet1!$B$2:$B$500, Sheet1!$G$2:$G$500, 0)\n))\n\n/* 比逐行写 XLOOKUP 更简洁，一个公式搞定整列 */"
+        },
+        {
+          "type": "h3",
+          "text": "配合 TEXTJOIN 做条件拼接"
+        },
+        {
+          "type": "code",
+          "text": "/* 对每行数据拼接后合并 */\n=LET(\n    拼接结果, MAP(A2:A10, B2:B10, LAMBDA(组, 状态, 组 & \":\" & 状态)),\n    TEXTJOIN(\", \", TRUE, 拼接结果)\n)\n/* 结果如 \"挤压组:合格, 挤压组:不合格, 包装组:合格\" */"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法：MAP(区域, LAMBDA(x, 对x的计算)) 是逐行处理的标准模板。如果需要逐行查表，用 MAP + XLOOKUP 比手动下拉更高效。"
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "title": "四、SCAN — 逐步累积扫描",
+      "badge": "4",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "SCAN 对数组中的每个元素应用 LAMBDA，返回每一步的中间结果（不是最终值）。相当于编程中的 `scan` / `accumulate` 函数。"
+        },
+        {
+          "type": "code",
+          "text": "=SCAN([初始值], 数组, LAMBDA(累加器, 当前值, 计算))"
+        },
+        {
+          "type": "h3",
+          "text": "基本用法"
+        },
+        {
+          "type": "code",
+          "text": "/* 累计求和 */\n=SCAN(0, A2:A10, LAMBDA(累计, 当前, 累计 + 当前))\n/* 如果 A2:A10 = {10, 20, 30}\n   返回 {10, 30, 60} */\n\n/* 累计计数 */\n=SCAN(0, A2:A10, LAMBDA(计数, 当前, 计数 + 1))\n/* 返回 {1, 2, 3, 4, 5, 6, 7, 8, 9} */"
+        },
+        {
+          "type": "h3",
+          "text": "累计最大值"
+        },
+        {
+          "type": "code",
+          "text": "/* 截止当前的最高值（股票最高价常用） */\n=SCAN(0, B2:B30, LAMBDA(当前最高, 今日值, MAX(当前最高, 今日值)))\n/* 返回截止每个时点的历史最高值 */"
+        },
+        {
+          "type": "h3",
+          "text": "连续标记"
+        },
+        {
+          "type": "code",
+          "text": "/* 标记连续合格：一旦不合格，标记中断 */\n=SCAN(TRUE, B2:B30, LAMBDA(前序结果, 当前状态, 前序结果 * (当前状态 = \"合格\")))\n/* 返回 TRUE, TRUE, FALSE, FALSE, ...\n   一旦遇到\"不合格\"，后面全部为 FALSE */"
+        },
+        {
+          "type": "h3",
+          "text": "分组累计"
+        },
+        {
+          "type": "code",
+          "text": "/* 按组别累计产量 */\n=LET(\n    组别列, A2:A30,\n    产量列, B2:B30,\n    SCAN(0, SEQUENCE(ROWS(组别列)), LAMBDA(累计, 行号,\n        LET(\n            当前组, INDEX(组别列, 行号),\n            前一组, IF(行号 > 1, INDEX(组别列, 行号 - 1), \"\"),\n            IF(当前组 = 前一组, 累计 + INDEX(产量列, 行号), INDEX(产量列, 行号))\n        )\n    ))\n)\n/* 每组重新开始累计 */"
+        },
+        {
+          "type": "h3",
+          "text": "运行平均"
+        },
+        {
+          "type": "code",
+          "text": "/* 截止当前的平均值 */\n=SCAN(0, A2:A30, LAMBDA(累计, 当前, 累计 + 当前))\n/ SEQUENCE(ROWS(A2:A30), 1, 1, 1)\n/* 累计求和数组 ÷ 序号数组 = 运行平均 */"
+        },
+        {
+          "type": "info",
+          "text": "SCAN vs REDUCE 的区别： - SCAN 返回每一步的中间结果（数组） - REDUCE 只返回最终结果（单个值）"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法：SCAN(初始值, 区域, LAMBDA(累计, 当前, 累计 + 当前)) 是累计求和的标准模板。把 + 换成其他运算可以实现不同效果。"
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "title": "五、REDUCE — 归约计算",
+      "badge": "5",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "REDUCE 对数组中的每个元素应用 LAMBDA，最终只返回一个结果。累加器可以是数字、文本、甚至数组。"
+        },
+        {
+          "type": "code",
+          "text": "=REDUCE([初始值], 数组, LAMBDA(累加器, 当前值, 计算))"
+        },
+        {
+          "type": "h3",
+          "text": "基本用法"
+        },
+        {
+          "type": "code",
+          "text": "/* 求和（等价于 SUM） */\n=REDUCE(0, A2:A10, LAMBDA(总和, 当前, 总和 + 当前))\n\n/* 求积 */\n=REDUCE(1, A2:A10, LAMBDA(乘积, 当前, 乘积 * 当前))\n\n/* 找最大值 */\n=REDUCE(0, A2:A10, LAMBDA(当前最大, 当前, MAX(当前最大, 当前)))"
+        },
+        {
+          "type": "h3",
+          "text": "条件筛选（用累加器收集数组）"
+        },
+        {
+          "type": "p",
+          "text": "REDUCE 的强大之处在于累加器可以是数组。配合 VSTACK 可以实现\"循环筛选\"。"
+        },
+        {
+          "type": "code",
+          "text": "/* 筛选大于平均值的记录 */\n=DROP(\n    REDUCE(\"\", A2:A10,\n        LAMBDA(结果, 当前,\n            IF(当前 > AVERAGE(A2:A10),\n               VSTACK(结果, 当前),\n               结果)\n        )\n    ),\n    1   /* 去掉初始的空字符串行 */\n)\n\n/* 筛选包含\"模具\"的记录 */\n=DROP(\n    REDUCE(\"\", B2:B50,\n        LAMBDA(结果, 当前,\n            IF(ISNUMBER(SEARCH(\"模具\", 当前)),\n               VSTACK(结果, 当前),\n               结果)\n        )\n    ),\n    1\n)"
+        },
+        {
+          "type": "h3",
+          "text": "条件合并文本"
+        },
+        {
+          "type": "code",
+          "text": "/* 将以\"A\"开头的值合并为逗号分隔 */\n=TEXTBEFORE(\n    REDUCE(\"\", A1:A5,\n        LAMBDA(文本, 当前,\n            IF(LEFT(当前, 1) = \"A\",\n               文本 & 当前 & \",\",\n               文本)\n        )\n    ),\n    \",\"\n)\n/* 去掉末尾多余的逗号 */"
+        },
+        {
+          "type": "h3",
+          "text": "多表合并"
+        },
+        {
+          "type": "code",
+          "text": "/* 将多个工作表的数据垂直合并 */\n=DROP(\n    REDUCE(\n        VSTACK({\"表名\",\"数据\"}),\n        HSTACK(Sheet1!A2:A10, Sheet2!A2:A10, Sheet3!A2:A10),\n        LAMBDA(合并结果, 当前块,\n            VSTACK(合并结果, 当前块)\n        )\n    ),\n    1\n)"
+        },
+        {
+          "type": "h3",
+          "text": "逐行复杂判断"
+        },
+        {
+          "type": "code",
+          "text": "/* 逐行检查：如果产量>100且状态=\"合格\"，累加1，否则不累加 */\n=REDUCE(0, A2:A50,\n    LAMBDA(计数, 当前产量,\n        LET(\n            行号, XMATCH(当前产量, A2:A50),\n            状态, INDEX(D2:D50, 行号),\n            IF(AND(当前产量 > 100, 状态 = \"合格\"),\n               计数 + 1,\n               计数)\n        )\n    )\n)"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法：用 REDUCE 做条件筛选的标准模板：  =DROP(REDUCE(\"\", 区域, LAMBDA(结果, 当前, IF(条件, VSTACK(结果, 当前), 结果))), 1)  初始值用空文本 \"\"，最后用 DROP(..., 1) 去掉首行。"
+        },
+        {
+          "type": "warning",
+          "text": "风险点： 1. REDUCE + VSTACK 在大数据量时性能较差（每次追加都要重建数组），建议数据量不超过 1000 行 2. 初始值类型要与累加结果类型匹配，否则可能报错 3. REDUCE 的累加器不能直接是空数组 {}，需用 \"\" 或 0 初始化再用 DROP 清理"
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "title": "六、BYROW / BYCOL — 逐行逐列处理",
+      "badge": "6",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "BYROW 对数组的每一行应用 LAMBDA，返回每行的结果（一列）。BYCOL 对每一列同理。"
+        },
+        {
+          "type": "code",
+          "text": "=BYROW(数组, LAMBDA(行, 计算))\n=BYCOL(数组, LAMBDA(列, 计算))"
+        },
+        {
+          "type": "h3",
+          "text": "基本用法"
+        },
+        {
+          "type": "code",
+          "text": "/* 对每行求和 */\n=BYROW(A2:E10, LAMBDA(行, SUM(行)))\n/* 返回一列，每行是 A2:E2、A3:E3... 的和 */\n\n/* 对每行取最大值 */\n=BYROW(A2:E10, LAMBDA(行, MAX(行)))\n\n/* 对每行计算合格率 */\n=BYROW(A2:E10, LAMBDA(行,\n    COUNTIF(行, \"合格\") / COLUMNS(行)\n))"
+        },
+        {
+          "type": "h3",
+          "text": "配合 LET 做复杂逐行计算"
+        },
+        {
+          "type": "code",
+          "text": "/* 每行计算：底薪 + 提成 + 阶梯奖励 */\n=BYROW(A2:E30, LAMBDA(行,\n    LET(\n        底薪, INDEX(行, 1),\n        销售额, INDEX(行, 2),\n        提成比例, INDEX(行, 3),\n        阶梯门槛, INDEX(行, 4),\n        阶梯奖励, INDEX(行, 5),\n        底薪 + 销售额 * 提成比例 + IF(销售额 > 阶梯门槛, 阶梯奖励, 0)\n    )\n))"
+        },
+        {
+          "type": "h3",
+          "text": "逐列统计"
+        },
+        {
+          "type": "code",
+          "text": "/* 每列的平均值 */\n=BYCOL(A2:E30, LAMBDA(列, AVERAGE(列)))\n\n/* 每列的非空计数 */\n=BYCOL(A2:E30, LAMBDA(列, COUNTA(列)))"
+        },
+        {
+          "type": "h3",
+          "text": "BYROW + FILTER 组合"
+        },
+        {
+          "type": "code",
+          "text": "/* 筛选\"行最大值>100\"的行 */\n=FILTER(A2:E10,\n    BYROW(A2:E10, LAMBDA(行, MAX(行) > 100))\n)\n\n/* 筛选\"行中有不合格\"的行 */\n=FILTER(A2:E10,\n    BYROW(A2:E10, LAMBDA(行, COUNTIF(行, \"不合格\") > 0))\n)"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法：FILTER(数据, BYROW(数据, LAMBDA(行, 条件))) 是\"按行条件筛选整行\"的标准模板。BYROW 返回一列布尔值，FILTER 根据布尔值筛选。"
+        },
+        {
+          "type": "info",
+          "text": "BYROW vs MAP 的区别： - BYROW：一次处理一整行（参数是一行数组），适合行内多列计算 - MAP：一次处理一个元素，适合单列逐个映射 - 如果只需要处理单列，用 MAP 更直观；如果需要行内多列联动计算，用 BYROW"
+        }
+      ]
+    },
+    {
+      "id": "s7",
+      "title": "七、MAKEARRAY — 自定义生成数组",
+      "badge": "7",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "MAKEARRAY 按指定的行数和列数生成数组，每个元素的值由 LAMBDA 函数决定。"
+        },
+        {
+          "type": "code",
+          "text": "=MAKEARRAY(行数, 列数, LAMBDA(行号, 列号, 计算))"
+        },
+        {
+          "type": "h3",
+          "text": "基本用法"
+        },
+        {
+          "type": "code",
+          "text": "/* 生成 3×3 的乘法表 */\n=MAKEARRAY(3, 3, LAMBDA(r, c, r * c))\n/* 返回:\n   1  2  3\n   2  4  6\n   3  6  9  */\n\n/* 生成 5×1 的序号列 */\n=MAKEARRAY(5, 1, LAMBDA(r, c, r))\n/* 返回 {1; 2; 3; 4; 5} */"
+        },
+        {
+          "type": "h3",
+          "text": "生成棋盘格"
+        },
+        {
+          "type": "code",
+          "text": "/* 8×8 棋盘格（交替黑白） */\n=MAKEARRAY(8, 8, LAMBDA(r, c,\n    IF(MOD(r + c, 2) = 0, \"■\", \"□\")\n))"
+        },
+        {
+          "type": "h3",
+          "text": "生成日期+时间段矩阵"
+        },
+        {
+          "type": "code",
+          "text": "/* 行=日期，列=班次，内容=日期+班次组合 */\n=MAKEARRAY(7, 3, LAMBDA(行, 列,\n    TEXT(DATE(2026, 8, 行), \"m/d\") & \" \" & CHOOSE(列, \"早班\", \"中班\", \"晚班\")\n))"
+        },
+        {
+          "type": "h3",
+          "text": "配合 SEQUENCE 做序号填充"
+        },
+        {
+          "type": "code",
+          "text": "/* 从 100 开始编号的 5×3 矩阵 */\n=MAKEARRAY(5, 3, LAMBDA(r, c,\n    100 + (r - 1) * 3 + c - 1\n))\n/* 返回:\n   100 101 102\n   103 104 105\n   106 107 108\n   109 110 111\n   112 113 114 */"
+        },
+        {
+          "type": "info",
+          "text": "MAKEARRAY vs SEQUENCE： - SEQUENCE 只能生成等差数列 - MAKEARRAY 可以用任意逻辑决定每个单元格的值 - 简单序号用 SEQUENCE，复杂规则用 MAKEARRAY"
+        }
+      ]
+    },
+    {
+      "id": "s8",
+      "title": "八、数组变形函数",
+      "badge": "8",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "这些函数可以改变数组的形状、方向、结构，是数据清洗的利器。"
+        },
+        {
+          "type": "h3",
+          "text": "8.1 VSTACK / HSTACK — 垂直/水平拼接"
+        },
+        {
+          "type": "code",
+          "text": "/* 垂直拼接（上下合并） */\n=VSTACK(A2:A10, B2:B10)        /* 两列上下合并为一列 */\n=VSTACK(Sheet1!A2:E10, Sheet2!A2:E10)   /* 两表上下合并 */\n\n/* 水平拼接（左右合并） */\n=HSTACK(A2:A10, B2:B10)        /* 两列左右合并为两列 */\n\n/* 带表头拼接 */\n=VSTACK(\n    HSTACK({\"编号\",\"名称\",\"状态\"}),\n    HSTACK(A2:A10, B2:B10, C2:C10)\n)"
+        },
+        {
+          "type": "h3",
+          "text": "8.2 WRAPROWS / WRAPCOLS — 一维转二维"
+        },
+        {
+          "type": "code",
+          "text": "/* 将一维数组按行折成二维（每N列换行） */\n=WRAPROWS(A1:A12, 3)\n/* A1:A12 = {1;2;3;4;5;6;7;8;9;10;11;12}\n   返回:\n   1  2  3\n   4  5  6\n   7  8  9\n   10 11 12 */\n\n/* 将一维数组按列折成二维（每N行换列） */\n=WRAPCOLS(A1:A12, 3)\n/* 返回:\n   1  4  7  10\n   2  5  8  11\n   3  6  9  12 */\n\n/* 配合 pad 值处理不整除 */\n=WRAPROWS(A1:A10, 3, \"—\")    /* 不足处填\"—\" */"
+        },
+        {
+          "type": "h3",
+          "text": "8.3 TOCOL / TOROW — 二维转一维"
+        },
+        {
+          "type": "code",
+          "text": "/* 将二维数组转为单列（按列扫描） */\n=TOCOL(A1:C5)\n/* 默认按列扫描：A1,A2,A3,A4,A5,B1,B2,... */\n\n/* 按行扫描 */\n=TOCOL(A1:C5, , TRUE)\n/* A1,B1,C1,A2,B2,C2,... */\n\n/* 忽略空值和错误 */\n=TOCOL(A1:C5, 3)              /* 1=忽略空, 2=忽略错误, 3=都忽略 */"
+        },
+        {
+          "type": "h3",
+          "text": "8.4 TAKE / DROP — 取/删行列"
+        },
+        {
+          "type": "code",
+          "text": "/* 取前N行 */\n=TAKE(A1:E10, 3)              /* 取前3行 */\n=TAKE(A1:E10, -3)             /* 取后3行 */\n\n/* 取前N列 */\n=TAKE(A1:E10, , 2)            /* 取前2列 */\n=TAKE(A1:E10, , -1)           /* 取最后1列 */\n\n/* 删前N行 */\n=DROP(A1:E10, 1)              /* 去掉表头 */\n=DROP(A1:E10, -1)             /* 去掉最后一行 */"
+        },
+        {
+          "type": "h3",
+          "text": "8.5 CHOOSEROWS / CHOOSECOLS — 按索引取行列"
+        },
+        {
+          "type": "code",
+          "text": "/* 取第2、4、5列 */\n=CHOOSECOLS(A1:E10, 2, 4, 5)\n\n/* 取第1、3行 */\n=CHOOSEROWS(A1:E10, 1, 3)\n\n/* 用 MATCH 动态选列 */\n=CHOOSECOLS(A1:E10, XMATCH(\"模具编号\", A1:E1), XMATCH(\"状态\", A1:E1))\n/* 根据表头名称动态选择列 */"
+        },
+        {
+          "type": "h3",
+          "text": "8.6 数组变形组合示例"
+        },
+        {
+          "type": "code",
+          "text": "/* 将多列数据合并为一列并去重排序 */\n=SORT(UNIQUE(TOCOL(A2:C50)))\n\n/* 将宽表转为长表（逆透视） */\n=LET(\n    数据, A1:C10,\n    表头, TAKE(数据, 1),\n    内容, DROP(数据, 1),\n    VSTACK(\n        HSTACK({\"行号\",\"列名\",\"值\"}),\n        DROP(\n            REDUCE(\"\", SEQUENCE(ROWS(内容)),\n                LAMBDA(结果, r,\n                    VSTACK(结果,\n                        HSTACK(\n                            SEQUENCE(COLUMNS(内容), 1, r, 0),\n                            TRANSPOSE(表头),\n                            TRANSPOSE(INDEX(内容, r, 0))\n                        )\n                    )\n                )\n            ),\n            1\n        )\n    )\n)"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法：宽表转长表（逆透视）的通用模板：  TOCOL(数据区域, 1)          / 一列值 / 配合 WRAPROWS 重组          / 重组为三列：行号、列名、值 /  简单场景可以用 TOCOL + 重复表头实现，复杂场景用 REDUCE。"
+        }
+      ]
+    },
+    {
+      "id": "s9",
+      "title": "九、GROUPBY / PIVOTBY — 公式版透视表",
+      "badge": "9",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "GROUPBY 和 PIVOTBY 是 M365 最新的预览函数，用一个公式就能替代数据透视表，完全动态、自动更新。"
+        },
+        {
+          "type": "h3",
+          "text": "9.1 GROUPBY — 分组聚合"
+        },
+        {
+          "type": "code",
+          "text": "=GROUPBY(行字段, 值字段, 函数, [表头], [总计行], [表头位置], [排序], [筛选])"
+        },
+        {
+          "type": "code",
+          "text": "/* 按组别汇总产量 */\n=GROUPBY(B2:B500, E2:E500, SUM, 3)\n/* 参数3=显示表头+总计行 */\n\n/* 按组别汇总多列 */\n=GROUPBY(B2:B500, HSTACK(E2:E500, G2:G500), SUM, 3)\n\n/* 按组别+状态汇总产量 */\n=GROUPBY(HSTACK(B2:B500, D2:D500), E2:E500, SUM, 3)\n\n/* 使用自定义聚合函数 */\n=GROUPBY(B2:B500, E2:E500,\n    LAMBDA(x, ROUND(AVERAGE(x), 2)),  /* 平均值保留2位 */\n    3)"
+        },
+        {
+          "type": "h3",
+          "text": "9.2 PIVOTBY — 公式版数据透视表"
+        },
+        {
+          "type": "code",
+          "text": "=PIVOTBY(行字段, 列字段, 值字段, 函数, [表头], [行总计], [列总计], [排序], [筛选])"
+        },
+        {
+          "type": "code",
+          "text": "/* 行=组别, 列=状态, 值=产量求和 */\n=PIVOTBY(B2:B500, D2:D500, E2:E500, SUM, 3)\n\n/* 行=组别, 列=月份, 值=平均产量 */\n=PIVOTBY(\n    B2:B500,                    /* 行字段 */\n    TEXT(F2:F500, \"yyyy-mm\"),   /* 列字段（日期按月分组） */\n    E2:E500,                     /* 值字段 */\n    AVERAGE,                     /* 聚合函数 */\n    3                            /* 显示表头和总计 */\n)\n\n/* 完全替代透视表，且数据更新后自动刷新 */"
+        },
+        {
+          "type": "h3",
+          "text": "9.3 GROUPBY vs PIVOTBY vs 透视表"
+        },
+        {
+          "type": "code",
+          "text": "特性 | 数据透视表 | GROUPBY | PIVOTBY\n二维交叉分析 | 支持 | 不支持 | 支持\n自动更新 | 需手动刷新 | 完全自动 | 完全自动\n自定义函数 | 计算字段有限 | 任意 LAMBDA | 任意 LAMBDA\n切片器联动 | 支持 | 不支持 | 不支持\n嵌套在其他公式中 | 不支持 | 支持 | 支持\n版本要求 | 全版本 | M365 预览 | M365 预览"
+        },
+        {
+          "type": "warning",
+          "text": "风险点：GROUPBY/PIVOTBY 目前仍为预览功能（Insider 渠道），正式版可能还未推送。如果不可用，可用 SORT+UNIQUE+SUMIFS 组合替代。"
+        }
+      ]
+    },
+    {
+      "id": "s10",
+      "title": "十、高效公式实战组合",
+      "badge": "10",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "10.1 动态查找 + 多列返回 + 条件筛选"
+        },
+        {
+          "type": "code",
+          "text": "/* 根据输入的组别，动态返回该组所有合格记录的编号和产量 */\n=LET(\n    目标组, A1,                          /* A1 是下拉选框 */\n    筛选结果, FILTER(A2:E500, (B2:B500=目标组) * (D2:D500=\"合格\")),\n    CHOOSECOLS(筛选结果, 1, 5)           /* 只返回编号和产量列 */\n)"
+        },
+        {
+          "type": "h3",
+          "text": "10.2 分组排名 + 取前N"
+        },
+        {
+          "type": "code",
+          "text": "/* 每组取产量最高的前3条记录 */\n=LET(\n    数据, A2:E500,\n    编号, INDEX(数据, 0, 1),\n    组别, INDEX(数据, 0, 2),\n    产量, INDEX(数据, 0, 5),\n    组内排名, MAP(组别, 产量, LAMBDA(g, p,\n        SUM((组别 = g) * (产量 > p)) + 1\n    )),\n    FILTER(数据, 组内排名 <= 3)\n)"
+        },
+        {
+          "type": "h3",
+          "text": "10.3 交叉匹配查找"
+        },
+        {
+          "type": "code",
+          "text": "/* 在两个不同区域中查找，返回第一个找到的结果 */\n=LET(\n    结果1, XLOOKUP(A2, Sheet1!B:B, Sheet1!D:D, \"\"),\n    结果2, XLOOKUP(A2, Sheet2!A:A, Sheet2!C:C, \"\"),\n    IF(结果1 <> \"\", 结果1, 结果2)\n)\n\n/* 用 LAMBDA 封装为自定义函数 */\n/* 名称：双区域查找 */\n=LAMBDA(查找值, 区域1查找列, 区域1返回列, 区域2查找列, 区域2返回列,\n    LET(\n        r1, XLOOKUP(查找值, 区域1查找列, 区域1返回列, \"\"),\n        IF(r1 <> \"\", r1, XLOOKUP(查找值, 区域2查找列, 区域2返回列, \"未找到\"))\n    )\n)"
+        },
+        {
+          "type": "h3",
+          "text": "10.4 动态累计 + 环比判断"
+        },
+        {
+          "type": "code",
+          "text": "/* 累计产量 + 环比增长标记 */\n=LET(\n    产量, E2:E50,\n    日期, F2:F50,\n    累计, SCAN(0, 产量, LAMBDA(s, c, s + c)),\n    环比, MAP(累计, LAMBDA(x,\n        IF(x = 0, \"—\", \"增长\" )\n    )),\n    HSTACK(日期, 产量, 累计, 环比)\n)"
+        },
+        {
+          "type": "h3",
+          "text": "10.5 批量多条件查找 + 合并结果"
+        },
+        {
+          "type": "code",
+          "text": "/* 根据 A 列多个编号，查找每个编号对应的组别，合并为逗号分隔 */\n=LET(\n    编号列表, TEXTSPLIT(A2, \",\"),\n    查找结果, MAP(编号列表, LAMBDA(编号,\n        XLOOKUP(编号, $B$2:$B$500, $C$2:$C$500, \"?\")\n    )),\n    TEXTJOIN(\",\", TRUE, 查找结果)\n)\n/* A2 = \"M001,M002,M003\" → \"挤压1组,挤压2组,包装组\" */"
+        },
+        {
+          "type": "h3",
+          "text": "10.6 动态排序 + 去重 + 补齐"
+        },
+        {
+          "type": "code",
+          "text": "/* 获取唯一组别列表，按字母排序，并用\"—\"补齐到5个 */\n=LET(\n    唯一值, SORT(UNIQUE(B2:B500)),\n    补齐数, 5 - ROWS(唯一值),\n    IF(补齐数 > 0,\n        VSTACK(唯一值, EXPAND(\"—\", 补齐数, 1, \"—\")),\n        唯一值\n    )\n)"
+        },
+        {
+          "type": "h3",
+          "text": "10.7 行列转换（矩阵转置 + 汇总）"
+        },
+        {
+          "type": "code",
+          "text": "/* 将按月排列的数据转置为长表 */\n=LET(\n    原始, A1:D13,                    /* A列=项目, B-D列=1-3月 */\n    表头, DROP(TAKE(原始, 1), , 1),  /* {\"1月\",\"2月\",\"3月\"} */\n    项目, DROP(原始, 1),             /* 去掉表头 */\n    项目名, INDEX(项目, 0, 1),\n    月度数据, DROP(项目, , 1),        /* 去掉项目名列 */\n    VSTACK(\n        HSTACK({\"项目\",\"月份\",\"值\"}),\n        DROP(REDUCE(\"\", SEQUENCE(ROWS(项目)),\n            LAMBDA(结果, r,\n                VSTACK(结果,\n                    HSTACK(\n                        SEQUENCE(COLUMNS(月度数据), 1, INDEX(项目名, r), 0),\n                        TRANSPOSE(表头),\n                        TRANSPOSE(INDEX(月度数据, r, 0))\n                    )\n                )\n            )\n        ), 1)\n    )\n)"
+        }
+      ]
+    },
+    {
+      "id": "s11",
+      "title": "十一、函数对比与选择指南",
+      "badge": "11",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "迭代函数对比"
+        },
+        {
+          "type": "code",
+          "text": "函数 | 返回值 | 累加器 | 典型用途 | 性能\nMAP | 数组（同大小） | 无 | 逐元素变换 | 快\nSCAN | 数组（同大小） | 有（每步保留） | 累计/递推 | 中等\nREDUCE | 单个值 | 有（只保最终） | 归约/条件收集 | 中等\nBYROW | 数组（一列） | 无 | 逐行多列计算 | 快\nBYCOL | 数组（一行） | 无 | 逐列多行计算 | 快\nMAKEARRAY | 数组（自定义大小） | 无 | 生成新数组 | 中等"
+        },
+        {
+          "type": "h3",
+          "text": "选择决策树"
+        },
+        {
+          "type": "code",
+          "text": "需要逐元素处理？\n  ├─ 单列 → MAP\n  └─ 整行 → BYROW\n需要累积/递推？\n  ├─ 保留每步结果 → SCAN\n  └─ 只要最终结果 → REDUCE\n需要生成新数组？\n  ├─ 等差数列 → SEQUENCE\n  ├─ 规则矩阵 → MAKEARRAY\n  └─ 从现有数据变形 → VSTACK/TOCOL/WRAPROWS\n需要自定义可复用函数？\n  ├─ 注册为名称 → LAMBDA + 名称管理器\n  └─ 一次性使用 → LET + 内联 LAMBDA"
+        }
+      ]
+    },
+    {
+      "id": "s12",
+      "title": "十二、常见风险点与注意事项",
+      "badge": "12",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "12.1 性能陷阱"
+        },
+        {
+          "type": "code",
+          "text": "场景 | 问题 | 建议\nREDUCE + VSTACK 大数据 | 每次追加都重建整个数组，O(n²) 复杂度 | 数据量 > 500 行时改用 FILTER\nMAP + XLOOKUP 整列 | MAP(A:A, ...) 查找 100 万行 | 限定实际数据范围\nLAMBDA 递归过深 | 栈溢出 | 递归深度 < 100\nSCAN 累加大数组 | 数组越大每步计算越慢 | 分段处理\nBYROW + INDEX 逐列取值 | 反复 INDEX 效率低 | 用 CHOOSECOLS 先取列"
+        },
+        {
+          "type": "h3",
+          "text": "12.2 数组溢出问题"
+        },
+        {
+          "type": "code",
+          "text": "/* 问题：目标区域有数据，报 #SPILL! */\n=MAP(A2:A10, LAMBDA(x, x * 2))    /* 如果 B2:B10 有值，溢出失败 */\n\n/* 解决：清空目标区域，或用 IFERROR 包裹 */"
+        },
+        {
+          "type": "h3",
+          "text": "12.3 LAMBDA 常见错误"
+        },
+        {
+          "type": "code",
+          "text": "/* 错误1：忘记调用参数 */\n=LAMBDA(x, x * 2)                 /* 只返回 LAMBDA 定义，不计算 */\n=LAMBDA(x, x * 2)(5)              /* 正确：返回 10 */\n\n/* 错误2：参数数量不匹配 */\n=MAP(A2:A10, B2:B10, LAMBDA(x, x * 2))  /* 两个数组但 LAMBDA 只接收1个参数 */\n=MAP(A2:A10, B2:B10, LAMBDA(x, y, x * y))  /* 正确 */\n\n/* 错误3：递归无终止条件 */\n/* 名称：无限循环 */\n=LAMBDA(n, 无限循环(n + 1))     /* 会报循环引用错误 */\n\n/* 正确：有终止条件 */\n=LAMBDA(n, IF(n >= 10, n, 无限循环(n + 1)))"
+        },
+        {
+          "type": "h3",
+          "text": "12.4 变量命名冲突"
+        },
+        {
+          "type": "code",
+          "text": "/* 错误：变量名与单元格引用冲突 */\n=LET(A1, 100, A1 * 2)            /* A1 是有效单元格引用，冲突！ */\n\n/* 正确：用描述性名称 */\n=LET(基础值, 100, 基础值 * 2)\n\n/* 正确：用中文变量名（推荐） */\n=LET(含税, 100 * 1.13, 含税 * 0.87)"
+        },
+        {
+          "type": "h3",
+          "text": "12.5 版本兼容性"
+        },
+        {
+          "type": "code",
+          "text": "函数 | 版本要求 | 替代方案\nLAMBDA | M365 | 嵌套 IF + 辅助列\nMAP / SCAN / REDUCE | M365 | 旧版需 Ctrl+Shift+Enter 数组公式\nBYROW / BYCOL | M365 | 逐行写公式\nMAKEARRAY | M365/2021 | SEQUENCE + 计算\nGROUPBY / PIVOTBY | M365 Insider | 数据透视表 / SORT+UNIQUE+SUMIFS\nTEXTSPLIT | M365 | LEFT/MID/RIGHT + FIND\nVSTACK / HSTACK | M365 | 逐行复制\nTOCOL / TOROW | M365 | INDIRECT + INDEX 组合"
+        },
+        {
+          "type": "warning",
+          "text": "风险点：使用 M365 独有函数时，如果文件需要分享给低版本用户，会显示 #NAME? 错误。建议在文件中注明所需最低版本，或提供降级方案。"
+        }
+      ]
+    },
+    {
+      "id": "s13",
+      "title": "附录：高阶公式速查表",
+      "badge": "13",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "LET 变量定义"
+        },
+        {
+          "type": "code",
+          "text": "需求 | 公式\n消除重复计算 | =LET(结果, XLOOKUP(...), IF(结果>100, 结果*1.1, 结果*0.9))\n多级计算 | =LET(数据, A2:A10, 均值, AVERAGE(数据), FILTER(数据, 数据>均值))"
+        },
+        {
+          "type": "h3",
+          "text": "LAMBDA 自定义函数"
+        },
+        {
+          "type": "code",
+          "text": "需求 | 公式\n安全除法 | =LAMBDA(a, b, IF(b=0, 0, ROUND(a/b, 2)))(A2, B2)\n多条件查找 | 注册名称后: =多条件查找(值1, 值2, 区域1, 区域2, 返回区域)\n递归阶乘 | 注册名称\"阶乘\": =LAMBDA(n, IF(n<=1, 1, n*阶乘(n-1)))"
+        },
+        {
+          "type": "h3",
+          "text": "MAP 逐元素映射"
+        },
+        {
+          "type": "code",
+          "text": "需求 | 公式\n逐行查找 | =MAP(A2:A50, LAMBDA(x, XLOOKUP(x, B:B, D:D, \"\")))\n两列运算 | =MAP(A2:A10, B2:B10, LAMBDA(a, b, a*b))\n条件标记 | =MAP(A2:A10, LAMBDA(x, IF(x>AVG, \"高\", \"低\")))"
+        },
+        {
+          "type": "h3",
+          "text": "SCAN 累积扫描"
+        },
+        {
+          "type": "code",
+          "text": "需求 | 公式\n累计求和 | =SCAN(0, A2:A10, LAMBDA(s, c, s+c))\n运行最大 | =SCAN(0, B2:B30, LAMBDA(m, c, MAX(m, c)))\n连续标记 | =SCAN(TRUE, B2:B30, LAMBDA(p, c, p*(c=\"合格\")))"
+        },
+        {
+          "type": "h3",
+          "text": "REDUCE 归约"
+        },
+        {
+          "type": "code",
+          "text": "需求 | 公式\n条件筛选 | =DROP(REDUCE(\"\", A2:A10, LAMBDA(r, c, IF(c>100, VSTACK(r,c), r))), 1)\n文本合并 | =TEXTBEFORE(REDUCE(\"\", A1:A5, LAMBDA(t, c, IF(条件, t&c&\",\", t))), \",\")\n求积 | =REDUCE(1, A2:A10, LAMBDA(p, c, p*c))"
+        },
+        {
+          "type": "h3",
+          "text": "BYROW 逐行处理"
+        },
+        {
+          "type": "code",
+          "text": "需求 | 公式\n行求和 | =BYROW(A2:E10, LAMBDA(r, SUM(r)))\n行筛选 | =FILTER(A2:E10, BYROW(A2:E10, LAMBDA(r, MAX(r)>100)))\n行内计算 | =BYROW(A2:E10, LAMBDA(r, INDEX(r,1)+INDEX(r,2)*INDEX(r,3)))"
+        },
+        {
+          "type": "h3",
+          "text": "数组变形"
+        },
+        {
+          "type": "code",
+          "text": "需求 | 公式\n上下合并 | =VSTACK(Sheet1!A2:D10, Sheet2!A2:D10)\n左右合并 | =HSTACK(A2:A10, B2:B10)\n二维转一列 | =TOCOL(A1:C5, 3)\n一列转二维 | =WRAPROWS(A1:A12, 3, \"—\")\n取前N行 | =TAKE(A1:E10, 5)\n去掉表头 | =DROP(A1:E10, 1)\n按名取列 | =CHOOSECOLS(A1:E10, XMATCH(\"产量\", A1:E1))\n唯一值排序 | =SORT(UNIQUE(TOCOL(A2:C50)))"
+        }
+      ]
+    },
+    {
+      "id": "s14",
+      "title": "十三、FILTER — 动态筛选（核心高效函数）",
+      "badge": "14",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "FILTER 是 M365 动态数组的核心，一个公式返回所有匹配行，完全替代 VLOOKUP 逐行查找 + 手动筛选的旧模式。"
+        },
+        {
+          "type": "code",
+          "text": "=FILTER(返回区域, 条件数组, [未找到时的返回值])"
+        },
+        {
+          "type": "h3",
+          "text": "13.1 单条件筛选"
+        },
+        {
+          "type": "code",
+          "text": "/* 筛选挤压组所有记录 */\n=FILTER(A2:E500, B2:B500=\"挤压组\")\n\n/* 找不到时返回提示而非 #CALC! */\n=FILTER(A2:E500, B2:B500=\"挤压组\", \"无匹配记录\")"
+        },
+        {
+          "type": "h3",
+          "text": "13.2 多条件筛选（AND / OR）"
+        },
+        {
+          "type": "code",
+          "text": "/* AND 关系：用 * 连接条件 */\n=FILTER(A2:E500, (B2:B500=\"挤压组\") * (D2:D500=\"合格\"))\n\n/* OR 关系：用 + 连接条件 */\n=FILTER(A2:E500, (B2:B500=\"挤压组\") + (B2:B500=\"包装组\"))\n\n/* AND + OR 混合 */\n=FILTER(A2:E500, (B2:B500=\"挤压组\") * ((D2:D500=\"合格\") + (D2:D500=\"待检\")))"
+        },
+        {
+          "type": "warning",
+          "text": "固定写法： - AND 条件用  连接：(条件1)  (条件2) - OR 条件用 + 连接：(条件1) + (条件2) - 条件两边必须加括号，否则运算优先级会出错"
+        },
+        {
+          "type": "h3",
+          "text": "13.3 筛选后只取指定列"
+        },
+        {
+          "type": "code",
+          "text": "/* 筛选后只返回第1列和第5列 */\n=CHOOSECOLS(FILTER(A2:E500, B2:B500=\"挤压组\"), 1, 5)\n\n/* 按表头名动态取列 */\n=CHOOSECOLS(\n    FILTER(A2:E500, B2:B500=\"挤压组\"),\n    XMATCH(\"编号\", A1:E1),\n    XMATCH(\"产量\", A1:E1)\n)"
+        },
+        {
+          "type": "h3",
+          "text": "13.4 嵌套筛选（先筛再查）"
+        },
+        {
+          "type": "code",
+          "text": "/* 从合格记录中查找指定编号的产量 */\n=LET(\n    合格集, FILTER(A2:E500, D2:D500=\"合格\"),\n    XLOOKUP(G1, INDEX(合格集, 0, 1), INDEX(合格集, 0, 5), \"无\")\n)"
+        },
+        {
+          "type": "h3",
+          "text": "13.5 筛选前N条"
+        },
+        {
+          "type": "code",
+          "text": "/* 筛选挤压组产量最高的前3条 */\n=TAKE(\n    SORT(FILTER(A2:E500, B2:B500=\"挤压组\"), 5, -1),\n    3\n)\n/* SORT 第5列降序(-1) → TAKE 取前3行 */"
+        },
+        {
+          "type": "h3",
+          "text": "13.6 筛选并聚合"
+        },
+        {
+          "type": "code",
+          "text": "/* 挤压组合格产量总和 */\n=SUM(FILTER(E2:E500, (B2:B500=\"挤压组\") * (D2:D500=\"合格\")))\n\n/* 挤压组合格记录数 */\n=COUNT(FILTER(E2:E500, (B2:B500=\"挤压组\") * (D2:D500=\"合格\")))\n\n/* 挤压组合格率 */\n=LET(\n    合格数, COUNT(FILTER(E2:E500, (B2:B500=\"挤压组\") * (D2:D500=\"合格\"))),\n    总数, COUNT(FILTER(E2:E500, B2:B500=\"挤压组\")),\n    IF(总数=0, 0, 合格数/总数)\n)"
+        },
+        {
+          "type": "h3",
+          "text": "13.7 二维条件筛选（行列双向）"
+        },
+        {
+          "type": "code",
+          "text": "/* 行筛选组别=挤压组，列只取编号和产量 */\n=CHOOSECOLS(\n    FILTER(A2:E500, B2:B500=\"挤压组\"),\n    XMATCH(\"编号\", A1:E1),\n    XMATCH(\"产量\", A1:E1)\n)"
+        },
+        {
+          "type": "h3",
+          "text": "13.8 筛选不重复值"
+        },
+        {
+          "type": "code",
+          "text": "/* 提取挤压组的不重复编号列表 */\n=UNIQUE(FILTER(A2:A500, B2:B500=\"挤压组\"))\n\n/* 提取不重复编号并排序 */\n=SORT(UNIQUE(FILTER(A2:A500, B2:B500=\"挤压组\")))"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法：SORT(UNIQUE(FILTER(列, 条件))) 是\"提取条件筛选后的去重排序列表\"标准模板。"
+        },
+        {
+          "type": "h3",
+          "text": "13.9 动态范围（自动扩展）"
+        },
+        {
+          "type": "code",
+          "text": "/* 数据源自动扩展：只要A列有值就纳入范围 */\n=FILTER(A2:INDEX(A:E, COUNTA(A:A), 5), B2:B500=\"挤压组\")"
+        },
+        {
+          "type": "warning",
+          "text": "风险点：FILTER 返回的是动态数组，如果目标区域有数据会报 #SPILL!。使用前确保下方有足够的空白行。"
+        }
+      ]
+    },
+    {
+      "id": "s15",
+      "title": "十四、XLOOKUP 高阶技巧",
+      "badge": "15",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "基础用法见 [[Excel常用公式与数据透视表教程#2.3 XLOOKUP — 新一代查找函数（Microsoft 365 / Excel 2021）|基础教程]]，这里补充高阶写法。"
+        },
+        {
+          "type": "h3",
+          "text": "14.1 返回多列（动态数组溢出）"
+        },
+        {
+          "type": "code",
+          "text": "/* 一个公式返回编号对应的名称、类型、状态三列 */\n=XLOOKUP(A2, B2:B500, C2:E500, \"未找到\")\n\n/* 自动溢出到 D2:F2 */"
+        },
+        {
+          "type": "h3",
+          "text": "14.2 通配符查找"
+        },
+        {
+          "type": "code",
+          "text": "/* 匹配以\"模具\"开头的第一个记录 */\n=XLOOKUP(\"模具*\", B2:B500, C2:C500, \"未找到\", 2)\n/* 第5参数=2 表示通配符匹配 */\n\n/* 匹配包含\"2026\"的记录 */\n=XLOOKUP(\"*2026*\", B2:B500, C2:C500, \"未找到\", 2)"
+        },
+        {
+          "type": "h3",
+          "text": "14.3 返回最后一个匹配项（倒序搜索）"
+        },
+        {
+          "type": "code",
+          "text": "/* 找最后一次出现的记录（最新记录） */\n=XLOOKUP(A2, B2:B500, C2:C500, \"未找到\", 0, -1)\n/* 第6参数=-1 表示从后往前搜索 */"
+        },
+        {
+          "type": "h3",
+          "text": "14.4 近似匹配（查找最接近但不超出的值）"
+        },
+        {
+          "type": "code",
+          "text": "/* 查找不超过目标值的最大值（类似 VLOOKUP 模糊匹配） */\n=XLOOKUP(A2, B2:B500, C2:C500, \"未找到\", -1)\n/* 第5参数=-1：精确或下一个较小值 */\n/* 要求 B 列已升序排列 */\n\n/* 查找不低于目标值的最小值 */\n=XLOOKUP(A2, B2:B500, C2:C500, \"未找到\", 1)\n/* 第5参数=1：精确或下一个较大值 */"
+        },
+        {
+          "type": "h3",
+          "text": "14.5 双条件查找"
+        },
+        {
+          "type": "code",
+          "text": "/* 组别+编号 双条件查找 */\n=LET(\n    匹配行, (B2:B500=目标组) * (A2:A500=目标编号),\n    FILTER(C2:C500, 匹配行, \"未找到\")\n)\n\n/* 或用 XLOOKUP + 数组拼接 */\n=XLOOKUP(目标组 & 目标编号, B2:B500 & A2:A500, C2:C500, \"未找到\")"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法：多条件查找有两种高效写法： - FILTER(返回列, (条件1列=值1)  (条件2列=值2)) — 返回所有匹配 - XLOOKUP(值1 & 值2, 列1 & 列2, 返回列) — 返回第一个匹配"
+        },
+        {
+          "type": "h3",
+          "text": "14.6 嵌套 XLOOKUP（多级查找）"
+        },
+        {
+          "type": "code",
+          "text": "/* 先在表1查，查不到再查表2 */\n=LET(\n    结果1, XLOOKUP(A2, Sheet1!B:B, Sheet1!D:D, \"\"),\n    IF(结果1 <> \"\", 结果1, XLOOKUP(A2, Sheet2!A:A, Sheet2!C:C, \"未找到\"))\n)"
+        },
+        {
+          "type": "h3",
+          "text": "14.7 XLOOKUP vs FILTER 速查"
+        },
+        {
+          "type": "code",
+          "text": "场景 | 推荐 | 原因\n返回第一个匹配 | XLOOKUP | 更简洁，内置未找到处理\n返回所有匹配 | FILTER | XLOOKUP 只返回一个\n多条件查找 | FILTER | 条件用 * 拼接更直观\n从右往左查 | 两者都行 | XLOOKUP 更简洁\n通配符查找 | XLOOKUP | 原生支持，FILTER 需配合 SEARCH\n近似匹配 | XLOOKUP | FILTER 不支持"
+        }
+      ]
+    },
+    {
+      "id": "s16",
+      "title": "十五、高效公式模式速查（直接套用）",
+      "badge": "16",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "以下是日常工作中最高频的公式模式，可直接复制修改参数使用。"
+        },
+        {
+          "type": "h3",
+          "text": "模式1：条件求和替代 SUMIFS（支持多列返回）"
+        },
+        {
+          "type": "code",
+          "text": "/* SUMIFS 只能返回单值，FILTER 可以返回数组 */\n=SUM(FILTER(E2:E500, (B2:B500=\"挤压组\") * (D2:D500=\"合格\")))"
+        },
+        {
+          "type": "h3",
+          "text": "模式2：分组取前N（替代辅助列+排序）"
+        },
+        {
+          "type": "code",
+          "text": "/* 每组取产量最高的前3条 */\n=LET(\n    数据, A2:E500,\n    组别, INDEX(数据, 0, 2),\n    产量, INDEX(数据, 0, 5),\n    排名, MAP(组别, 产量, LAMBDA(g, p,\n        SUM((组别=g) * (产量>p)) + 1\n    )),\n    FILTER(数据, 排名 <= 3)\n)"
+        },
+        {
+          "type": "h3",
+          "text": "模式3：VLOOKUP 批量替代（MAP + XLOOKUP）"
+        },
+        {
+          "type": "code",
+          "text": "/* 一个公式替代整列 VLOOKUP 下拉 */\n=MAP(A2:A100, LAMBDA(编号,\n    XLOOKUP(编号, 查找表!A:A, 查找表!D:D, \"\")\n))"
+        },
+        {
+          "type": "h3",
+          "text": "模式4：累计 + 环比标记"
+        },
+        {
+          "type": "code",
+          "text": "=LET(\n    数值, B2:B30,\n    累计, SCAN(0, 数值, LAMBDA(s, c, s + c)),\n    环比, MAP(数值, LAMBDA(x, IF(x > 0, \"↑\", IF(x < 0, \"↓\", \"→\")))),\n    HSTACK(数值, 累计, 环比)\n)"
+        },
+        {
+          "type": "h3",
+          "text": "模式5：多列合并去重排序"
+        },
+        {
+          "type": "code",
+          "text": "/* 将 A、B、C 三列数据合并去重排序 */\n=SORT(UNIQUE(VSTACK(A2:A50, B2:B50, C2:C50)))"
+        },
+        {
+          "type": "h3",
+          "text": "模式6：动态报表表头 + 数据"
+        },
+        {
+          "type": "code",
+          "text": "/* 表头固定，数据动态筛选 */\n=LET(\n    表头, A1:E1,\n    数据, FILTER(A2:E500, B2:B500=\"挤压组\"),\n    VSTACK(表头, 数据)\n)"
+        },
+        {
+          "type": "h3",
+          "text": "模式7：查找结果合并为逗号分隔文本"
+        },
+        {
+          "type": "code",
+          "text": "/* 一个编号对应多条记录，合并为逗号分隔 */\n=TEXTJOIN(\", \", TRUE,\n    FILTER(C2:C500, A2:A500=目标编号, \"\")\n)"
+        },
+        {
+          "type": "h3",
+          "text": "模式8：交叉表转长表（逆透视）"
+        },
+        {
+          "type": "code",
+          "text": "/* A列=产品, B-D列=1-3月数据 → 转为 产品/月份/值 三列 */\n=LET(\n    原始, A1:D10,\n    表头, DROP(TAKE(原始, 1), , 1),\n    数据, DROP(原始, 1),\n    产品列, INDEX(数据, 0, 1),\n    月数据, DROP(数据, , 1),\n    HSTACK(\n        TOCOL(IF(SEQUENCE(1, COLUMNS(月数据)), 产品列), , TRUE),\n        TOCOL(IF(SEQUENCE(ROWS(月数据)), 表头)),\n        TOCOL(月数据)\n    )\n)"
+        },
+        {
+          "type": "h3",
+          "text": "模式9：安全查找（防 #N/A 传播）"
+        },
+        {
+          "type": "code",
+          "text": "/* 嵌套 IFERROR 或用 XLOOKUP 第4参数 */\n=IFERROR(XLOOKUP(A2, B:B, D:D), \"未找到\")\n\n/* 或直接用 XLOOKUP 内置 */\n=XLOOKUP(A2, B:B, D:D, \"未找到\")"
+        },
+        {
+          "type": "h3",
+          "text": "模式10：条件格式公式（配合动态数组）"
+        },
+        {
+          "type": "code",
+          "text": "/* 高亮当前行是否在筛选结果中（条件格式公式） */\n=COUNTIF(FILTER($A$2:$A$500, $B$2:$B$500=\"挤压组\"), $A2) > 0\n\n/* 高亮重复值（条件格式） */\n=COUNTIF($A$2:$A$500, $A2) > 1"
+        }
+      ]
+    },
+    {
+      "id": "s17",
+      "title": "十六、函数协同关系图",
+      "badge": "17",
+      "blocks": [
+        {
+          "type": "code",
+          "text": "┌─────────────────────────────────────────────────┐\n│              高效公式协同关系                       │\n├─────────────────────────────────────────────────┤\n│                                                   │\n│  LET ── 变量定义（所有复杂公式的基础）                │\n│   │                                               │\n│   ├── LAMBDA ── 自定义函数（可注册为名称）           │\n│   │    ├── MAP ── 逐元素映射                       │\n│   │    ├── SCAN ── 累积扫描（保留每步）              │\n│   │    ├── REDUCE ── 归约（只保最终值）              │\n│   │    ├── BYROW/BYCOL ── 逐行/逐列处理              │\n│   │    └── MAKEARRAY ── 生成自定义数组               │\n│   │                                               │\n│   ├── FILTER ── 动态筛选（多条件 AND/OR）            │\n│   │    ├── SORT ── 排序                           │\n│   │    ├── UNIQUE ── 去重                          │\n│   │    └── TAKE/CHOOSECOLS ── 取行列               │\n│   │                                               │\n│   ├── XLOOKUP ── 查找（多列/通配符/倒序）            │\n│   │    └── XMATCH ── 返回位置                      │\n│   │                                               │\n│   └── 数组变形                                      │\n│        ├── VSTACK/HSTACK ── 拼接                   │\n│        ├── TOCOL/TOROW ── 降维                     │\n│        └── WRAPROWS/WRAPCOLS ── 升维               │\n│                                                   │\n└─────────────────────────────────────────────────┘"
+        }
+      ]
+    },
+    {
+      "id": "s18",
+      "title": "关联文档",
+      "badge": "18",
+      "blocks": [
+        {
+          "type": "ul",
+          "items": [
+            "[[Excel常用公式与数据透视表教程|Excel 基础公式与透视表教程]]",
+            "[[05-知识库与教程-MOC|教程与知识库索引]]",
+            "[[00-首页-MOC|知识库首页]]"
+          ]
+        },
+        {
+          "type": "tip",
+          "text": "教程版本说明 - 创建日期：2026-08-09 - 维护人：jdx - 适用版本：Microsoft 365（部分函数需 Insider 预览渠道） - 教程特点：聚焦高阶函数、标注固定写法模板、含实战组合案例、附函数对比与选择指南"
+        }
+      ]
+    }
+  ]
+}
