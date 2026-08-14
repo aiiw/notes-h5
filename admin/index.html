@@ -31,6 +31,23 @@
 
   <div id="app-view" class="hidden">
 
+  <div id="pwd-view" class="panel" style="margin-top:12px">
+    <h2>密码管理（私密内容）</h2>
+    <p class="muted">密码仅保存在本机浏览器，不会上传到 GitHub。私密文章正文会 AES 加密后再发布，访客需输入密码才能阅读。</p>
+    <div class="row">
+      <div class="field" style="flex:1;min-width:140px"><label>密码名称</label><input id="pwd-label" placeholder="例如：内部资料" /></div>
+      <div class="field" style="flex:1;min-width:140px"><label>密码</label><input id="pwd-value" type="password" placeholder="阅读/解锁密码" /></div>
+    </div>
+    <div class="row">
+      <button class="btn btn-primary" onclick="addVaultPassword()">保存到密码库</button>
+      <label class="muted" style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" id="pwd-default" checked /> 设为默认
+      </label>
+    </div>
+    <div id="pwd-list" style="margin-top:8px"></div>
+    <div id="pwd-status" class="status"></div>
+  </div>
+
   <div id="import-view" class="panel" style="margin-top:12px">
     <h2>批量导入 Markdown / H5</h2>
     <p class="muted">支持一次选择多个 `.md` / `.html` 文件。Markdown 按二级标题拆章；已有折叠结构的 H5 按 accordion 解析。</p>
@@ -49,7 +66,7 @@
 
   <div id="html-import-view" class="panel" style="margin-top:12px">
     <h2>专用 HTML 教程导入</h2>
-    <p class="muted">针对带侧栏目录 + <code>main-content</code> + <code>h2</code> 章节的教程 HTML（如《SQL Server 编程教程》）。每个 <code>h2</code> 自动变成一节折叠卡片，代码块 / 表格 / tip·warn·info 框一并转换。</p>
+    <p class="muted">针对带侧栏目录 + <code>main-content</code> + <code>h2</code> 章节的教程 HTML。每个 <code>h2</code> 自动变成一节折叠卡片。</p>
     <div class="field">
       <label>选择 HTML 文件（可多选）</label>
       <input id="html-import-files" type="file" multiple accept=".html,.htm,text/html" />
@@ -63,10 +80,31 @@
     <div id="html-import-status" class="status"></div>
   </div>
 
+  <div id="office-import-view" class="panel" style="margin-top:12px">
+    <h2>导入 Word / Excel</h2>
+    <p class="muted">按模板填写后上传。Excel 按「文章ID + 章节标题」合并；Word 用标题1/2/3 结构。可先下载模板。</p>
+    <div class="row">
+      <a class="btn" href="./templates/notes-import-template.xlsx" download>下载 Excel 模板</a>
+      <a class="btn" href="./templates/notes-import-template.docx" download>下载 Word 模板</a>
+    </div>
+    <div class="field" style="margin-top:8px">
+      <label>选择 .xlsx / .docx（可多选）</label>
+      <input id="office-import-files" type="file" multiple accept=".xlsx,.xls,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+    </div>
+    <div class="row">
+      <button class="btn btn-primary" onclick="previewOfficeImport()">解析预览</button>
+      <button class="btn btn-primary" onclick="publishOfficeImport()">一键发布到 GitHub</button>
+      <button class="btn" onclick="clearOfficeImport()">清空预览</button>
+    </div>
+    <div id="office-import-preview" class="muted" style="margin-top:10px"></div>
+    <div id="office-import-status" class="status"></div>
+  </div>
+
     <div class="admin-grid">
       <div class="panel">
         <h2>文章菜单</h2>
         <div id="post-list"></div>
+        <div id="post-pager" class="pager"></div>
         <div class="row">
           <button class="btn btn-primary" onclick="newPost()">新建文章</button>
           <button class="btn" onclick="reloadAll()">刷新</button>
@@ -86,6 +124,28 @@
         <div class="field"><label>是否显示在菜单</label>
           <select id="post-enabled"><option value="true">显示</option><option value="false">隐藏</option></select>
         </div>
+        <div class="field"><label>可见性（默认公开）</label>
+          <select id="post-visibility" onchange="onVisibilityChange()">
+            <option value="public">公开</option>
+            <option value="private">私密（需密码）</option>
+          </select>
+        </div>
+        <div id="private-pwd-box" class="hidden">
+          <div class="field"><label>使用密码库中的密码</label>
+            <select id="post-pwd-select"></select>
+          </div>
+          <div class="field"><label>或临时输入密码</label>
+            <input id="post-pwd-input" type="password" placeholder="留空则用上方所选密码" autocomplete="new-password" />
+          </div>
+          <div id="private-unlock-box" class="hidden">
+            <p class="muted">当前文章为加密私密内容，编辑前请解锁：</p>
+            <div class="row">
+              <input id="unlock-pwd" type="password" placeholder="输入密码解锁编辑" style="flex:1" />
+              <button class="btn btn-primary" type="button" onclick="unlockCurrentPost()">解锁</button>
+            </div>
+            <div id="unlock-status" class="status"></div>
+          </div>
+        </div>
         <h2>折叠章节</h2>
         <div id="sections"></div>
         <div class="row">
@@ -99,8 +159,12 @@
     </div>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <script src="../assets/reader.js"></script>
+<script src="../assets/crypto.js"></script>
 <script src="./importer.js"></script>
+<script src="./office-importer.js"></script>
 <script src="./admin.js"></script>
 </body>
 </html>
