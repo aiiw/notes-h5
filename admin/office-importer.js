@@ -50,6 +50,7 @@ window.NotesOfficeImporter = (function () {
           title: title || id,
           desc: String(r["菜单简介"] || r["desc"] || "").trim(),
           intro: String(r["文首说明"] || r["intro"] || "").trim(),
+          category: String(r["栏目"] || r["category"] || r["分类"] || "").trim(),
           updated: new Date().toISOString(),
           _secs: new Map(),
         });
@@ -58,6 +59,8 @@ window.NotesOfficeImporter = (function () {
       if (title) post.title = title;
       if (r["菜单简介"] || r["desc"]) post.desc = String(r["菜单简介"] || r["desc"] || "").trim();
       if (r["文首说明"] || r["intro"]) post.intro = String(r["文首说明"] || r["intro"] || "").trim();
+      const catRaw = String(r["栏目"] || r["category"] || r["分类"] || "").trim();
+      if (catRaw) post.category = catRaw;
       if (!post._secs.has(secTitle)) post._secs.set(secTitle, { title: secTitle, badge, blocks: [] });
       const sec = post._secs.get(secTitle);
       if (badge) sec.badge = badge;
@@ -102,6 +105,7 @@ window.NotesOfficeImporter = (function () {
     let id = "";
     let intro = "";
     let desc = "";
+    let category = "";
     const sections = [];
     let cur = null;
     let inCode = false;
@@ -153,6 +157,10 @@ window.NotesOfficeImporter = (function () {
       }
       if (!cur && /^DESC\s*[:：]/i.test(text)) {
         desc = text.replace(/^DESC\s*[:：]\s*/i, "").trim();
+        continue;
+      }
+      if (!cur && /^(CATEGORY|栏目|分类)\s*[:：]/i.test(text)) {
+        category = text.replace(/^(CATEGORY|栏目|分类)\s*[:：]\s*/i, "").trim();
         continue;
       }
       if (!cur && /^菜单简介\s*[:：]/.test(text)) {
@@ -223,6 +231,7 @@ window.NotesOfficeImporter = (function () {
       title,
       intro: intro || title,
       desc: desc || (intro || title).slice(0, 80),
+      category: category || "",
       updated: new Date().toISOString(),
       sections: outSecs.length ? outSecs : [{
         id: "s1", title: title, badge: "1",
