@@ -1,6 +1,6 @@
 {
   "siteTitle": "aiiw 笔记站",
-  "siteIntro": "手机友好的 H5 笔记站。支持折叠阅读；管理后台可批量导入 Markdown / H5 并一键发布。",
+  "siteIntro": "手机友好的 H5 笔记站。支持折叠阅读与菜单搜索；管理后台可导入 Markdown / 教程 HTML 并一键发布。",
   "items": [
     {
       "id": "welcome",
@@ -35,20 +35,12 @@
       "order": 4
     },
     {
-      "id": "sql-server-p_mold_auto_apply_v4_bak",
-      "title": "SQL Server 编程教程 — 基于自动点模脚本 p_mold_auto_apply_v4_bak",
-      "desc": "SQL Server 编程教程 — 基于自动点模脚本 p_mold_auto_apply_v4_bak",
+      "id": "sqlserver-mold-auto-apply",
+      "title": "SQL Server 编程教程",
+      "desc": "基于点模脚本的 T-SQL 编程指南（21 主题 + DEMO）",
       "updated": "2026-08-14",
       "enabled": true,
       "order": 5
-    },
-    {
-      "id": "datagrip-sql-server",
-      "title": "DataGrip 面向 SQL Server 开发培训手册",
-      "desc": "版本: DataGrip 2023.x+ | 数据库: SQL Server 2019/2022 重点: 调试技巧与高效开发实战",
-      "updated": "2026-08-14",
-      "enabled": true,
-      "order": 6
     }
   ]
 }
