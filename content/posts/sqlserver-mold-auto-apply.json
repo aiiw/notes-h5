@@ -1,0 +1,1171 @@
+{
+  "id": "sqlserver-mold-auto-apply",
+  "title": "SQL Server 编程教程",
+  "intro": "基于自动点模存储过程 p_mold_auto_apply_v4_bak 的完整 T-SQL 编程指南，涵盖 21 个核心主题 + DEMO 模板。",
+  "updated": "2026-08-14T00:00:00.000Z",
+  "sections": [
+    {
+      "id": "s1",
+      "title": "01存储过程创建与参数定义",
+      "badge": "1",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "存储过程（Stored Procedure）是一组预编译的 T-SQL 语句集合，存储在数据库中，可通过名称调用。存储过程具有以下优势：   性能优化：首次执行时编译并缓存执行计划，后续调用直接复用   安全控制：可通过授权控制访问，隐藏表结构   模块化：业务逻辑封装，减少网络流量   事务完整性：可在过程内部管理事务"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "CREATE PROCEDURE dbo.p_mold_auto_apply_v4_bak\n    @is_auto INT = 0\nAS\nBEGIN\n    SET NOCOUNT ON;\n    -- 存储过程主体逻辑...\nEND\nGO"
+        },
+        {
+          "type": "h3",
+          "text": "通用完整语法 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "CREATE [ OR ALTER ] PROCEDURE [schema_name.]procedure_name\n    [ { @parameter data_type } [ VARYING ] [ = default_value ] [ READONLY ] [ OUT | OUTPUT ] ]\n    [ ,...n ]\nAS\nBEGIN\n    -- T-SQL 语句\nEND"
+        },
+        {
+          "type": "h3",
+          "text": "参数类型完整说明"
+        },
+        {
+          "type": "code",
+          "text": "参数类型 | 关键字 | 说明 | 调用方式\n输入参数（默认） | 无特殊关键字 | 调用者传入值，过程内部只读 | EXEC p @is_auto = 1\n输出参数 | OUTPUT 或 OUT | 可将值返回给调用者 | EXEC p @result OUTPUT\n带默认值参数 | = default_value | 调用时不传则使用默认值 | EXEC p（使用默认值0）\n只读参数 | READONLY | 表类型参数必须使用，过程内不可修改 | @tvp TableType READONLY\nVARYING | VARYING | 仅用于 cursor OUTPUT 参数 | 较少使用"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 生产环境标准存储过程头部模板 CREATE OR ALTER PROCEDURE dbo.p_procedure_name     @param1 INT = 0,        -- 带默认值的输入参数     @param2 VARCHAR(100) = NULL,  -- 可空参数     @result INT OUTPUT      -- 输出参数 AS BEGIN     SET NOCOUNT ON;           -- 固定写法：关闭行数返回，提升性能     SET XACT_ABORT ON;         -- 固定写法：运行时错误自动回滚事务     BEGIN TRY         BEGIN TRANSACTION;         -- 核心业务逻辑         COMMIT TRANSACTION;     END TRY     BEGIN CATCH         IF @@TRANCOUNT > 0             ROLLBACK TRANSACTION;         -- 错误处理     END CATCH END GO"
+        },
+        {
+          "type": "warning",
+          "text": "关键风险点：   缺少 SET NOCOUNT ON：每条语句执行后都会向客户端发送 DONE_IN_PROC 消息，造成网络开销，严重影响性能   缺少 SET XACT_ABORT ON：当发生运行时错误（如约束冲突）时，事务不会自动回滚，导致数据不一致。SET XACT_ABORT ON 会确保任何运行时错误都自动回滚整个事务   参数默认值陷阱：@is_auto INT = 0 中若调用者传 NULL，则值为 NULL 而非 0。默认值仅在调用者\"不传参数\"时生效，传 NULL 则保持 NULL   GO 分隔符：GO 不是 T-SQL 语句，是 SSMS/sqlcmd 工具的批处理分隔符。在动态 SQL 或应用程序代码中不能使用 GO   OR ALTER：SQL Server 2016 SP1+ 才支持 CREATE OR ALTER，旧版本需先 IF EXISTS DROP 再 CREATE"
+        },
+        {
+          "type": "tip",
+          "text": "调用存储过程的两种方式： -- 方式1：按位置传参 EXEC dbo.p_mold_auto_apply_v4_bak 1; -- 方式2：按名称传参（推荐，更安全） EXEC dbo.p_mold_auto_apply_v4_bak @is_auto = 1;"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "title": "02变量声明与赋值",
+      "badge": "2",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "T-SQL 中的局部变量以 @ 开头，必须先 DECLARE 声明后才能使用。变量作用域从声明处开始，到声明所在的批处理/存储过程结束。   标量变量：存储单个值，如 @count INT   表变量：存储多行多列数据，如 @tbl TABLE(...)   全局变量以 @@ 开头，是系统预定义的，如 @@ROWCOUNT、@@TRANCOUNT"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- CATCH 块中声明多个变量并赋值\nDECLARE @remark1 VARCHAR(2000),\n        @rem_20 VARCHAR(5000),\n        @recipient VARCHAR(2000),\n        @re_org VARCHAR(20),\n        @body VARCHAR(MAX),\n        @send_id VARCHAR(50) = NEWID();\n\nSELECT @remark1 = '自动点模出错';\nSELECT @body = '自动点模出错';\nSELECT @rem_20 = ERROR_MESSAGE();  -- 获取错误消息"
+        },
+        {
+          "type": "h3",
+          "text": "声明语法 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- 声明单个变量\nDECLARE @var_name data_type [= default_value];\n\n-- 声明多个变量（逗号分隔）\nDECLARE @v1 INT, @v2 VARCHAR(100), @v3 DATETIME;\n\n-- 声明时赋默认值（SQL Server 2008+）\nDECLARE @count INT = 0, @name VARCHAR(50) = 'test';\n\n-- 声明表变量\nDECLARE @temp_table TABLE (\n    id INT PRIMARY KEY,\n    name VARCHAR(100)\n);"
+        },
+        {
+          "type": "h3",
+          "text": "赋值方式对比"
+        },
+        {
+          "type": "code",
+          "text": "方式 | 语法 | 特点 | 适用场景\nSET | SET @v = expr; | 标准 ANSI 赋值；一次只赋一个变量；若查询返回多行会报错 | 单值赋值（推荐）\nSELECT | SELECT @v = col FROM tbl; | 可一次赋多个变量；多行时取最后一行值（不报错）；无匹配行时保持原值 | 从查询结果赋值\n声明时赋值 | DECLARE @v INT = 0; | 声明与赋值合并 | 简单初始值"
+        },
+        {
+          "type": "warning",
+          "text": "SET vs SELECT 的关键差异（高风险）： -- 场景：查询无匹配行时 DECLARE @v1 INT = 100, @v2 INT = 100; -- SET 方式：无匹配行时，@v1 被设为 NULL SET @v1 = (SELECT col FROM tbl WHERE 1=0);  -- @v1 = NULL -- SELECT 方式：无匹配行时，@v2 保持原值 100！ SELECT @v2 = col FROM tbl WHERE 1=0;      -- @v2 = 100（未变！） 这个差异是很多 Bug 的根源：当 SELECT 赋值的查询没有匹配行时，变量不会被重置为 NULL，而是保持之前的值。如果之前的值来自上一次循环迭代，就会导致数据错误。"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 游标循环中变量赋值的标准模式 DECLARE @emp_no VARCHAR(20), @line_no VARCHAR(20); OPEN cur; FETCH NEXT FROM cur INTO @emp_no, @line_no; WHILE @@FETCH_STATUS = 0 BEGIN     -- 每次循环处理当前行数据     FETCH NEXT FROM cur INTO @emp_no, @line_no; END CLOSE cur; DEALLOCATE cur;"
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "title": "03事务管理（BEGIN / COMMIT / ROLLBACK）",
+      "badge": "3",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "事务（Transaction）是作为单个逻辑工作单元执行的一系列操作。事务具有 ACID 四大特性：   Atomicity（原子性）：全部成功或全部回滚   Consistency（一致性）：事务前后数据保持一致状态   Isolation（隔离性）：并发事务互不干扰   Durability（持久性）：提交后永久保存 @@TRANCOUNT 是全局变量，记录当前连接的活动事务数量。每 BEGIN TRANSACTION 加 1，每 COMMIT 减 1，ROLLBACK 清零。"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "BEGIN TRY\n    BEGIN TRANSACTION;\n    -- ... 核心业务逻辑 ...\n    COMMIT TRANSACTION;\nEND TRY\nBEGIN CATCH\n    -- Step 1: 回滚事务\n    IF @@TRANCOUNT > 0\n        ROLLBACK TRANSACTION;\n    -- ... 后续错误处理 ...\nEND CATCH;"
+        },
+        {
+          "type": "h3",
+          "text": "完整事务语法 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- 显式事务\nBEGIN TRANSACTION [tran_name];\n    -- DML 语句\nCOMMIT TRANSACTION [tran_name];   -- 提交\n-- 或\nROLLBACK TRANSACTION [tran_name];  -- 回滚\n\n-- 保存点（嵌套事务中部分回滚）\nBEGIN TRANSACTION;\n    SAVE TRANSACTION save_point1;\n    -- 某些操作\n    ROLLBACK TRANSACTION save_point1;  -- 只回滚到保存点，不回滚整个事务\nCOMMIT TRANSACTION;"
+        },
+        {
+          "type": "h3",
+          "text": "事务控制语句一览"
+        },
+        {
+          "type": "code",
+          "text": "语句 | 作用 | 对 @@TRANCOUNT 的影响\nBEGIN TRANSACTION | 开始一个显式事务 | +1\nBEGIN TRAN | 同上（简写） | +1\nCOMMIT TRANSACTION | 提交事务 | -1\nROLLBACK TRANSACTION | 回滚整个事务 | 清零为 0\nSAVE TRANSACTION | 设置保存点 | 不变\nROLLBACK TRAN save_point | 回滚到保存点 | 不变（不改变 @@TRANCOUNT）\nSET IMPLICIT_TRANSACTIONS ON | 隐式事务模式 | 执行某些语句时自动 BEGIN"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 TRY/CATCH + 事务的标准模板（生产必备） BEGIN TRY     BEGIN TRANSACTION;     -- 业务逻辑     COMMIT TRANSACTION; END TRY BEGIN CATCH     IF @@TRANCOUNT > 0         ROLLBACK TRANSACTION;     -- 记录错误、通知等     THROW;  -- 重新抛出错误给调用者 END CATCH;"
+        },
+        {
+          "type": "warning",
+          "text": "事务常见风险：   嵌套事务陷阱：SQL Server 实际上没有真正的嵌套事务。内层 BEGIN TRAN 只增加 @@TRANCOUNT，最外层的 ROLLBACK 才真正回滚所有操作。内层 COMMIT 只是减计数   忘记在 CATCH 中检查 @@TRANCOUNT：如果 TRY 块中在 BEGIN TRAN 之前就出错，CATCH 中 ROLLBACK 会报\"没有对应 BEGIN TRANSACTION\"的错误。必须先 IF @@TRANCOUNT > 0   长事务锁定：事务持有锁的时间越长，阻塞其他会话的可能性越大。应尽量缩短事务范围   缺少 SET XACT_ABORT ON：未设置时，某些错误（如约束冲突）只会终止当前语句而非整个事务，导致后续语句继续执行在\"脏\"事务中   事务中调用外部存储过程：如果被调用的存储过程内部也有 BEGIN/COMMIT，且出错时未正确回滚，可能导致事务计数不一致"
+        },
+        {
+          "type": "tip",
+          "text": "SET XACT_ABORT ON 的作用：当设置为 ON 时，如果 T-SQL 语句产生运行时错误，整个事务将自动终止并回滚。这是生产环境存储过程的必备设置。在自动点模脚本中通过 SET NOCOUNT ON 和 TRY/CATCH 配合实现事务安全。"
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "title": "04错误处理（TRY / CATCH）核心重点",
+      "badge": "4",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "TRY...CATCH 是 SQL Server 2005+ 引入的结构化错误处理机制，类似于 C#/Java 的 try-catch。当 TRY 块中的代码发生错误时，控制权立即转移到 CATCH 块，TRY 块中剩余代码不再执行。 CATCH 块中可用的错误函数： 函数返回内容 ERROR_MESSAGE()完整的错误消息文本 ERROR_NUMBER()错误号（整数） ERROR_SEVERITY()错误严重级别（0-25） ERROR_STATE()错误状态号 ERROR_PROCEDURE()发生错误的存储过程名 ERROR_LINE()发生错误的行号 XACT_STATE()事务状态：1=可提交, -1=不可提交, 0=无活动事务"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文 —— CATCH 块完整代码（6 步精确还原）"
+        },
+        {
+          "type": "p",
+          "text": "以下是 p_mold_auto_apply_v4_bak 存储过程 CATCH 块的完整原样代码，按照执行顺序分为 6 个步骤："
+        },
+        {
+          "type": "code",
+          "text": "BEGIN CATCH\n    -- ================================================================\n    -- Step 1: 回滚事务\n    -- ================================================================\n    IF @@TRANCOUNT > 0\n        ROLLBACK TRANSACTION\n\n    -- ================================================================\n    -- Step 2: 关闭并释放游标（如果仍处于打开状态）\n    -- ================================================================\n    IF CURSOR_STATUS('global', 'auto_mod_cur') <> -3\n       OR CURSOR_STATUS('local', 'auto_mod_cur') <> -3\n    BEGIN\n        CLOSE auto_mod_cur;\n        DEALLOCATE auto_mod_cur;\n    END;\n\n    -- ================================================================\n    -- Step 3: 调用系统错误日志记录存储过程\n    -- ================================================================\n    EXEC dbo.p_sys_raiserror;\n\n    -- ================================================================\n    -- Step 4: 声明变量并获取错误信息\n    -- ================================================================\n    DECLARE @remark1 VARCHAR(2000),\n            @rem_20 VARCHAR(5000),\n            @recipient VARCHAR(2000),\n            @re_org VARCHAR(20),\n            @body VARCHAR(MAX),\n            @send_id VARCHAR(50) = NEWID();\n\n    SELECT @remark1 = '自动点模出错';\n    SELECT @body = '自动点模出错';\n    SELECT @rem_20 = ERROR_MESSAGE();  -- 获取错误消息\n\n    -- ================================================================\n    -- Step 5: 查询通知接收人列表（使用 STRING_AGG 聚合）\n    -- ================================================================\n    SELECT @recipient = STRING_AGG(b.emp_no, ',')\n    FROM tb_mes_msg_type a\n        LEFT JOIN tb_mes_msg_type_users b\n            ON a.msg_type_code = b.msg_type_code\n    WHERE a.msg_type_code = 'MJTBCC'\n\n    -- ================================================================\n    -- Step 6: 发送多渠道通知（微信/PC/Android 推送）\n    -- ================================================================\n    EXEC zgRdp.dbo.p_sys_call_make_msg\n        @MsgTile = @remark1,\n        @MsgType = 0,\n        @Body = @rem_20,        -- 使用 ERROR_MESSAGE() 的结果\n        @SheetNo = '',\n        @LevelId = 0,\n        @WeixinPush = 1,\n        @PcPush = 1,\n        @AndroidPush = 1,\n        @SendUser = '',\n        @RecUsers = @recipient,\n        @RecRole = '',\n        @RecSql = '',\n        @MenuId = '',\n        @temp_id = 'DxOjZaab_bWL6mwzjVLq5bWXnFycR35MH2DwQAgJimQ',\n        @define1 = '',\n        @define2 = '',\n        @define3 = '',\n        @define4 = '',\n        @define5 = '',\n        @extend_field = '';\nEND CATCH;"
+        },
+        {
+          "type": "h3",
+          "text": "CATCH 块 6 步重点讲解"
+        },
+        {
+          "type": "h3",
+          "text": "Step 1：回滚事务 固定写法"
+        },
+        {
+          "type": "tip",
+          "text": "IF @@TRANCOUNT > 0     ROLLBACK TRANSACTION 这是 CATCH 块的第一要务。进入 CATCH 说明 TRY 块出错，必须先回滚未提交的事务释放锁资源。@@TRANCOUNT > 0 的判断必不可少——如果错误发生在 BEGIN TRANSACTION 之前，此时没有活动事务，直接 ROLLBACK 会报错。"
+        },
+        {
+          "type": "h3",
+          "text": "Step 2：游标清理 固定写法"
+        },
+        {
+          "type": "tip",
+          "text": "IF CURSOR_STATUS('global', 'auto_mod_cur') <> -3    OR CURSOR_STATUS('local', 'auto_mod_cur') <> -3 BEGIN     CLOSE auto_mod_cur;     DEALLOCATE auto_mod_cur; END; CURSOR_STATUS 返回值含义：-3 表示游标不存在/已释放。当游标可能已打开时（错误发生在游标循环中），必须先 CLOSE（关闭已打开的游标）再 DEALLOCATE（释放游标引用）。如果游标已经关闭但未释放，只需 DEALLOCATE。同时检查 global 和 local 两种作用域确保覆盖。 CURSOR_STATUS 返回值完整说明： 返回值含义 1游标已打开，至少包含 1 行 0游标已打开，但不包含任何行 -1游标已关闭 -2游标不可用（未分配或已释放） -3指定名称的游标不存在"
+        },
+        {
+          "type": "h3",
+          "text": "Step 3：系统错误日志"
+        },
+        {
+          "type": "info",
+          "text": "EXEC dbo.p_sys_raiserror; 调用自定义的系统错误记录存储过程，将错误信息写入日志表。这是一个业务约定：所有存储过程出错时都调用此过程统一记录错误日志，包含错误号、错误消息、存储过程名、行号等。该过程内部通常通过 ERROR_NUMBER()、ERROR_MESSAGE() 等函数获取错误详情。注意：必须在 Step 1 回滚事务之后调用，否则日志写入可能被回滚。"
+        },
+        {
+          "type": "h3",
+          "text": "Step 4：获取错误信息"
+        },
+        {
+          "type": "info",
+          "text": "DECLARE @send_id VARCHAR(50) = NEWID(); SELECT @rem_20 = ERROR_MESSAGE(); 声明变量并通过 ERROR_MESSAGE() 获取完整的错误文本。NEWID() 生成唯一标识符，用于消息跟踪。注意 @rem_20 的类型是 VARCHAR(5000)，足以容纳大部分错误消息。错误信息将作为通知消息体发送。 重要：ERROR_MESSAGE() 等错误函数只能在 CATCH 块内部使用。如果需要在 CATCH 块外部使用错误信息，必须先赋值给变量保存。"
+        },
+        {
+          "type": "h3",
+          "text": "Step 5：查询通知接收人"
+        },
+        {
+          "type": "info",
+          "text": "SELECT @recipient = STRING_AGG(b.emp_no, ',') FROM tb_mes_msg_type a     LEFT JOIN tb_mes_msg_type_users b         ON a.msg_type_code = b.msg_type_code WHERE a.msg_type_code = 'MJTBCC' 使用 STRING_AGG（SQL Server 2017+）将多个员工编号聚合为逗号分隔的字符串，如 '10001,10002,10003'。使用 LEFT JOIN 确保即使没有配置接收人，消息类型记录也存在。消息类型代码 'MJTBCC' 对应\"模具提醒\"场景。"
+        },
+        {
+          "type": "h3",
+          "text": "Step 6：发送多渠道通知"
+        },
+        {
+          "type": "info",
+          "text": "EXEC zgRdp.dbo.p_sys_call_make_msg     @MsgTile = @remark1,     @Body = @rem_20,        -- 错误消息     @WeixinPush = 1,       -- 微信推送     @PcPush = 1,           -- PC推送     @AndroidPush = 1,       -- Android推送     @RecUsers = @recipient,     @temp_id = 'DxOjZaab_bWL6mwzjVLq5bWXnFycR35MH2DwQAgJimQ',     ... 跨数据库调用（zgRdp.dbo.）发送通知。@WeixinPush = 1, @PcPush = 1, @AndroidPush = 1 同时启用三个推送渠道，确保运维人员能及时收到告警。@temp_id 是微信模板消息ID。错误消息体 @Body 直接使用 ERROR_MESSAGE() 的结果，让接收人看到具体错误内容。"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 生产级 CATCH 块完整模板（基于自动点模脚本抽象） BEGIN CATCH     -- 1. 回滚事务（必须第一步执行）     IF @@TRANCOUNT > 0         ROLLBACK TRANSACTION;     -- 2. 清理游标（如果使用了游标）     IF CURSOR_STATUS('global', 'cur_name') <> -3        OR CURSOR_STATUS('local', 'cur_name') <> -3     BEGIN         CLOSE cur_name;         DEALLOCATE cur_name;     END     -- 3. 记录错误日志     EXEC dbo.p_sys_raiserror;     -- 4. 获取错误信息     DECLARE @errmsg VARCHAR(5000) = ERROR_MESSAGE();     -- 5. 查询通知接收人     DECLARE @recipient VARCHAR(2000);     SELECT @recipient = STRING_AGG(b.emp_no, ',')     FROM tb_mes_msg_type a         LEFT JOIN tb_mes_msg_type_users b             ON a.msg_type_code = b.msg_type_code     WHERE a.msg_type_code = 'YOUR_MSG_CODE';     -- 6. 发送通知     EXEC zgRdp.dbo.p_sys_call_make_msg         @MsgTile = '操作出错',         @Body = @errmsg,         @WeixinPush = 1, @PcPush = 1, @AndroidPush = 1,         @RecUsers = @recipient,         @temp_id = 'your_template_id',         @MsgType = 0, @SheetNo = '', @LevelId = 0,         @SendUser = '', @RecRole = '', @RecSql = '',         @MenuId = '', @define1 = '', @define2 = '',         @define3 = '', @define4 = '', @define5 = '',         @extend_field = ''; END CATCH;"
+        },
+        {
+          "type": "warning",
+          "text": "CATCH 块关键风险：   错误函数时效性：ERROR_MESSAGE() 等函数必须在 CATCH 块首次执行的语句中使用。如果 CATCH 块中先执行了其他语句（如 EXEC），错误信息可能被覆盖。在自动点模脚本中，Step 3 先执行了 EXEC dbo.p_sys_raiserror，但该存储过程内部会自行捕获错误信息。如果直接在主 CATCH 块中使用，应确保 ERROR_MESSAGE() 是最早调用的   事务状态检查：更严谨的做法是使用 XACT_STATE()。返回 -1 表示事务不可提交（必须有 ROLLBACK），返回 1 表示可提交，返回 0 表示无活动事务   通知发送失败：如果 Step 6 的通知发送过程本身出错，CATCH 块没有嵌套 TRY/CATCH 保护，会导致\"错误处理中出错\"。生产环境应考虑在通知外层加 TRY/CATCH   游标名称硬编码：CURSOR_STATUS 需要传入游标名称字符串，如果游标名改了但忘了同步修改 CATCH 块，清理会失效   STRING_AGG 兼容性：SQL Server 2017 之前不支持 STRING_AGG。旧版本需用 STUFF(...FOR XML PATH('')) 替代   @recipient 为 NULL：如果查询无结果，@recipient 为 NULL，传给通知存储过程可能导致参数无效"
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "title": "05条件与流程控制（IF / ELSE / WHILE / CONTINUE / BREAK）",
+      "badge": "5",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "T-SQL 提供以下流程控制语句：   IF...ELSE：条件分支   WHILE：循环   BEGIN...END：语句块（类似 C/Java 的 {}）   BREAK：跳出循环   CONTINUE：跳过本次循环剩余部分，进入下次循环   RETURN：无条件退出存储过程/函数   GOTO：跳转到标签（不推荐使用）   WAITFOR：延迟执行"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- 时间验证：3点-6点、15点-18点期间不允许人工触发\nIF @is_auto = 0\nBEGIN\n    IF (DATEPART(HOUR, GETDATE()) BETWEEN 3 AND 5)\n    OR (DATEPART(HOUR, GETDATE()) BETWEEN 15 AND 17)\n    BEGIN\n        RAISERROR('3点-6点、15点-18点期间不允许人工触发自动点模!', 16, 1);\n    END\nEND\n\n-- 游标循环\nWHILE @@FETCH_STATUS = 0\nBEGIN\n    -- 循环体\n    FETCH NEXT FROM auto_mod_cur INTO ...;\nEND"
+        },
+        {
+          "type": "h3",
+          "text": "通用完整语法 通用扩展"
+        },
+        {
+          "type": "h3",
+          "text": "IF...ELSE"
+        },
+        {
+          "type": "code",
+          "text": "-- 单分支\nIF @count > 0\n    PRINT '有数据';\n\n-- 双分支\nIF @count > 0\nBEGIN\n    PRINT '有数据';\nEND\nELSE\nBEGIN\n    PRINT '无数据';\nEND\n\n-- 多条件（嵌套 IF ELSE IF）\nIF @score >= 90\n    SELECT 'A';\nELSE IF @score >= 80\n    SELECT 'B';\nELSE IF @score >= 60\n    SELECT 'C';\nELSE\n    SELECT 'F';"
+        },
+        {
+          "type": "h3",
+          "text": "WHILE / BREAK / CONTINUE"
+        },
+        {
+          "type": "code",
+          "text": "DECLARE @i INT = 0;\nWHILE @i < 10\nBEGIN\n    SET @i = @i + 1;\n\n    IF @i = 3\n        CONTINUE;  -- 跳过 i=3 的处理\n\n    IF @i = 7\n        BREAK;     -- i=7 时退出循环\n\n    PRINT @i;\nEND\n-- 输出: 1 2 4 5 6"
+        },
+        {
+          "type": "h3",
+          "text": "WAITFOR 延迟"
+        },
+        {
+          "type": "code",
+          "text": "-- 等待指定时间\nWAITFOR TIME '23:00:00';\n\n-- 等待指定延迟\nWAITFOR DELAY '00:00:05';  -- 等5秒"
+        },
+        {
+          "type": "h3",
+          "text": "RETURN"
+        },
+        {
+          "type": "code",
+          "text": "IF @param IS NULL\nBEGIN\n    RAISERROR('参数不能为空', 16, 1);\n    RETURN -1;  -- 退出并返回状态码\nEND"
+        },
+        {
+          "type": "warning",
+          "text": "流程控制风险提示：   IF 后不加 BEGIN...END：IF 后只能跟一条语句。如果有多条语句必须用 BEGIN...END 包裹，否则只有第一条语句属于 IF，后续语句无条件执行   IF 条件中的 NULL：IF @v = NULL 永远不为 TRUE！必须用 IF @v IS NULL。这是最常见的 NULL 陷阱   WHILE 死循环：如果循环体内忘记修改循环条件变量，会造成无限循环   BETWEEN 边界：BETWEEN 3 AND 5 包含 3 和 5（闭区间）。脚本中 BETWEEN 3 AND 5 对应 3、4、5 点，而错误消息说\"3点-6点\"，因为 5 点的含义是\"5:00-5:59\"即第6个小时   GOTO 滥用：虽然 T-SQL 支持 GOTO，但会严重破坏代码可读性和可维护性，应避免使用"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 时间窗口验证模式 -- 验证当前时间是否在允许的时间窗口内 DECLARE @current_hour INT = DATEPART(HOUR, GETDATE()); IF @current_hour BETWEEN 3 AND 5    OR @current_hour BETWEEN 15 AND 17 BEGIN     RAISERROR('当前时间段不允许执行此操作!', 16, 1);     RETURN; END"
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "title": "06临时表与表变量",
+      "badge": "6",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "SQL Server 提供多种临时数据存储方式： 类型前缀作用域存储位置支持索引统计信息 局部临时表#table当前会话（创建者）tempdb是是 全局临时表##table所有会话tempdb是是 表变量@table当前批处理/过程tempdb（少量数据可能内存）仅主键/约束否 内存优化表变量@table (类型)当前批处理内存有限否"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- 先检查临时表是否存在，存在则删除\nIF OBJECT_ID('tempdb..#jt_moldinfo') IS NOT NULL\n    DROP TABLE #jt_moldinfo;\n\n-- 创建临时表并填充数据\nSELECT ...\n    a.line_no, a.eqm_no, ...\nINTO #jt_moldinfo\nFROM tb_eqm a WITH (NOLOCK)\nWHERE ...;"
+        },
+        {
+          "type": "h3",
+          "text": "临时表 vs 表变量对比 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "特性 | 临时表 (#temp) | 表变量 (@temp)\n事务参与 | 参与事务，ROLLBACK 会回滚 | 不参与事务，ROLLBACK 不影响\n统计信息 | 有，优化器可生成更好计划 | 无，优化器预估行数为1\n大数据量 | 适合（千行以上） | 不适合（百行以内）\nSELECT INTO | 支持 | 不支持\nALTER TABLE | 支持 | 不支持\nTRUNCATE | 支持 | 不支持\n嵌套存储过程可见 | 可见 | 不可见\n创建/销毁开销 | 较大 | 较小"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 临时表安全创建模式（生产必备） -- 标准模式：先删后建 IF OBJECT_ID('tempdb..#temp_name') IS NOT NULL     DROP TABLE #temp_name; SELECT ... INTO #temp_name FROM ...; -- 或者使用 CREATE TABLE 显式定义 CREATE TABLE #temp_name (     id INT IDENTITY(1,1) PRIMARY KEY,     code VARCHAR(50) NOT NULL,     name NVARCHAR(100) ); -- 创建后添加索引 CREATE NONCLUSTERED INDEX IX_temp_code ON #temp_name(code);"
+        },
+        {
+          "type": "warning",
+          "text": "临时表风险提示：   忘记删除临时表：存储过程多次调用时，如果临时表已存在，SELECT INTO 会报错。必须先检查并删除   OBJECT_ID 检查写法：OBJECT_ID('tempdb..#temp') 是检查 tempdb 中临时表的正确写法。如果写成 OBJECT_ID('#temp') 在当前数据库中找不到   表变量大数据量性能差：表变量没有统计信息，优化器预估行数为 1。如果实际数据量大，执行计划会严重偏差。超过 100 行建议用临时表   临时表与事务：临时表参与事务。如果 CREATE TABLE #temp 在事务内执行，ROLLBACK 后临时表仍然存在但数据被回滚。在 CATCH 块中不需要显式 DROP（会话结束自动清理），但建议手动 DROP   全局临时表 (##)：多个会话可见，当一个会话创建全局临时表后，其他所有会话都能访问。最后一个引用它的会话断开后自动删除。使用不当会造成并发冲突   tempdb 瓶颈：所有临时表都存储在 tempdb 中。高并发场景下 tempdb 可能成为性能瓶颈，需关注其文件配置和大小"
+        }
+      ]
+    },
+    {
+      "id": "s7",
+      "title": "07SELECT INTO 与 INSERT INTO SELECT",
+      "badge": "7",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "这两种语法都用于将查询结果插入表中，但有关键区别：   SELECT INTO：创建新表并插入数据（一步完成）。目标表不能预先存在   INSERT INTO SELECT：将查询结果插入已存在的表。目标表必须预先创建"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- SELECT INTO：创建临时表并填充数据\nSELECT\n    a.line_no,\n    a.eqm_no,\n    a.model_no,\n    ROW_NUMBER() OVER (PARTITION BY a.line_no ORDER BY a.priority) AS rn\nINTO #jt_moldinfo\nFROM tb_eqm a WITH (NOLOCK)\nWHERE a.status = 'A';"
+        },
+        {
+          "type": "h3",
+          "text": "通用完整语法 通用扩展"
+        },
+        {
+          "type": "h3",
+          "text": "SELECT INTO"
+        },
+        {
+          "type": "code",
+          "text": "-- 基本语法：创建新表并复制数据+结构\nSELECT col1, col2, expr1 AS col3\nINTO new_table\nFROM source_table\nWHERE ...;\n\n-- 复制结构但不复制数据（加永假条件）\nSELECT * INTO new_table FROM source_table WHERE 1=0;\n\n-- 跨数据库复制\nSELECT * INTO TargetDB.dbo.new_table\nFROM SourceDB.dbo.source_table;"
+        },
+        {
+          "type": "h3",
+          "text": "INSERT INTO SELECT"
+        },
+        {
+          "type": "code",
+          "text": "-- 基本语法：插入已存在的表\nINSERT INTO target_table (col1, col2, col3)\nSELECT col1, col2, expr1\nFROM source_table\nWHERE ...;\n\n-- INSERT INTO ... EXEC：从存储过程结果插入\nINSERT INTO #temp (col1, col2)\nEXEC dbo.p_get_data @param = 1;\n\n-- INSERT TOP N：只插入前N行\nINSERT TOP (100) INTO target_table (col1, col2)\nSELECT col1, col2 FROM source_table;"
+        },
+        {
+          "type": "h3",
+          "text": "对比总结"
+        },
+        {
+          "type": "code",
+          "text": "特性 | SELECT INTO | INSERT INTO SELECT\n目标表 | 自动创建（不能预先存在） | 必须预先创建\n复制索引/约束 | 不复制（只复制列和数据类型） | N/A\nIDENTITY 列 | 复制为 IDENTITY | 需要 SET IDENTITY_INSERT ON\n最小日志 | 支持（恢复模式为 BULK_LOGGED/SIMPLE 时） | SELECT INTO 支持但 INSERT 通常完整日志\n性能 | 通常更快（最小日志） | 稍慢（完整日志）\n使用场景 | 临时表、快速备份 | 目标表已定义结构"
+        },
+        {
+          "type": "warning",
+          "text": "风险提示：   SELECT INTO 不复制约束：主键、外键、默认值、索引都不会被复制。如果需要这些，必须用 CREATE TABLE 显式定义后 INSERT INTO SELECT   SELECT INTO 锁定：SELECT INTO 在某些情况下会对源表持有 Sch-S 锁，可能阻塞 DDL 操作   列类型推导：SELECT INTO 根据源列推导新表列类型。表达式列的类型可能不符合预期，如 SUM(col) 可能推导为 DECIMAL 精度不够   INSERT 不指定列名：INSERT INTO tbl SELECT * 不安全——如果源表或目标表增删列，顺序可能不匹配。始终显式指定列名   大批量插入：大量数据插入时考虑使用 BULK INSERT 或 BCP，性能远优于 INSERT INTO SELECT"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 SELECT INTO 创建临时表的标准模式 -- 1. 先检查删除 IF OBJECT_ID('tempdb..#temp') IS NOT NULL     DROP TABLE #temp; -- 2. SELECT INTO 创建并填充 SELECT     col1, col2, col3,     ROW_NUMBER() OVER (PARTITION BY col1 ORDER BY col2) AS rn INTO #temp FROM source WITH (NOLOCK) WHERE ...; -- 3. 按需创建索引 CREATE CLUSTERED INDEX IX_temp ON #temp(col1);"
+        }
+      ]
+    },
+    {
+      "id": "s8",
+      "title": "08UPDATE ... FROM ... JOIN 语法",
+      "badge": "8",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "T-SQL 特有的 UPDATE ... FROM ... JOIN 语法允许在 UPDATE 语句中通过 JOIN 关联其他表来更新数据。这是 SQL Server 相对于标准 SQL 的扩展功能，在批量更新场景中非常实用。"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "UPDATE a\nSET a.mold_count = ISNULL(b.total_count, 0),\n    a.mold_limit = ISNULL(c.limit_val, 0)\nFROM #jt_moldinfo a\n    LEFT JOIN tb_eqm_config b WITH (NOLOCK)\n        ON a.line_no = b.line_no\n    LEFT JOIN tb_mold_rule c WITH (NOLOCK)\n        ON a.line_no = c.line_no\nWHERE a.status = 'A';"
+        },
+        {
+          "type": "h3",
+          "text": "通用完整语法 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- 基本语法\nUPDATE target_alias\nSET target_alias.col1 = source_alias.col1,\n    target_alias.col2 = expr\nFROM target_table AS target_alias\n    [INNER | LEFT | RIGHT | FULL] JOIN source_table AS source_alias\n        ON join_condition\nWHERE filter_condition;\n\n-- 多表 JOIN 更新\nUPDATE t\nSET t.col1 = s1.val1,\n    t.col2 = s2.val2\nFROM target t\n    INNER JOIN src1 s1 ON t.id = s1.id\n    INNER JOIN src2 s2 ON t.id = s2.id;\n\n-- 使用子查询更新\nUPDATE t\nSET t.status = 'done'\nFROM target t\nWHERE EXISTS (SELECT 1 FROM src s WHERE s.id = t.id);"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 UPDATE FROM LEFT JOIN + ISNULL 安全更新模式 UPDATE a SET a.target_col = ISNULL(b.source_col, a.target_col)  -- NULL 时保持原值 FROM #temp a     LEFT JOIN source_table b WITH (NOLOCK)         ON a.key_col = b.key_col;"
+        },
+        {
+          "type": "warning",
+          "text": "UPDATE FROM JOIN 风险提示：   多对一 JOIN 导致不确定更新：如果 JOIN 后每个目标行匹配多行源数据，SQL Server 的更新结果是不确定的（取最后一行）。应确保 JOIN 结果对每行目标数据唯一，或使用聚合   忘记 WHERE 条件：UPDATE a SET a.col = ... FROM #temp a LEFT JOIN ... 如果没有 WHERE，会更新临时表所有行。虽然临时表数据有限，但生产表中这是灾难性的   表别名混淆：UPDATE 后必须使用目标表的别名，不能直接用表名。如果写成 UPDATE target_table SET ... 而FROM 中用了别名，会报错   LEFT JOIN 产生 NULL：LEFT JOIN 不匹配时源列为 NULL。必须用 ISNULL() 处理，否则会将目标列更新为 NULL   标准 SQL 不兼容：UPDATE FROM JOIN 是 T-SQL 扩展，MySQL、PostgreSQL、Oracle 语法不同。跨数据库迁移时需改写为 MERGE 或子查询   NOLOCK 在 UPDATE 中：被 UPDATE 的表不能加 NOLOCK（写操作需要锁）。只有 JOIN 的源表可以加 NOLOCK"
+        }
+      ]
+    },
+    {
+      "id": "s9",
+      "title": "09游标（CURSOR）",
+      "badge": "9",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "游标（Cursor）是一种逐行处理查询结果的机制。虽然 SQL 是面向集合的语言，推荐使用集合操作替代游标，但在需要逐行处理复杂逻辑（如调用存储过程、逐行发送消息）时，游标仍然不可替代。 游标类型： 类型说明性能 FORWARD_ONLY只能从第一行滚动到最后一行最快（默认） FAST_FORWARD只进只读，启用性能优化推荐用于只读遍历 STATIC结果集快照存储在 tempdb较慢，但数据不随源表变化 KEYSET键集驱动，能感知新增/删除中等 DYNAMIC动态游标，实时反映源表变化最慢"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- 声明游标\nDECLARE auto_mod_cur CURSOR FOR\nSELECT line_no, eqm_no, model_no, mold_count, mold_limit\nFROM #jt_moldinfo\nWHERE rn = 1\n  AND need_mold = 1;\n\n-- 打开游标\nOPEN auto_mod_cur;\n\n-- 获取第一行\nFETCH NEXT FROM auto_mod_cur INTO\n    @line_no, @eqm_no, @model_no, @mold_count, @mold_limit;\n\n-- 循环处理\nWHILE @@FETCH_STATUS = 0\nBEGIN\n    -- 业务逻辑：检查型号数是否超过下限\n    IF @mold_count > @mold_limit\n    BEGIN\n        DECLARE @msg VARCHAR(1000);\n        SET @msg = FORMATMESSAGE(\n            '自动点模失败。机台当前有任务型号数%s大于下限%s，本次不点模。',\n            CAST(@mold_count AS VARCHAR(20)),\n            CAST(@mold_limit AS VARCHAR(20))\n        );\n        RAISERROR(@msg, 16, 1);\n    END\n\n    -- 获取下一行（必须放在循环体最后）\n    FETCH NEXT FROM auto_mod_cur INTO\n        @line_no, @eqm_no, @model_no, @mold_count, @mold_limit;\nEND\n\n-- 关闭并释放游标\nCLOSE auto_mod_cur;\nDEALLOCATE auto_mod_cur;"
+        },
+        {
+          "type": "h3",
+          "text": "游标完整语法 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- 声明\nDECLARE cursor_name [CURSOR]\n[ LOCAL | GLOBAL ]\n[ FORWARD_ONLY | SCROLL ]\n[ STATIC | KEYSET | DYNAMIC | FAST_FORWARD ]\n[ READ_ONLY | SCROLL_LOCKS | OPTIMISTIC ]\n[ TYPE_WARNING ]\nFOR SELECT ...\n[ FOR UPDATE [ OF col1, col2, ... ] ]\n\n-- 打开\nOPEN cursor_name;\n\n-- 获取数据\nFETCH [ NEXT | PRIOR | FIRST | LAST | ABSOLUTE n | RELATIVE n ]\nFROM cursor_name\nINTO @var1, @var2, ...;\n\n-- 关闭\nCLOSE cursor_name;\n\n-- 释放\nDEALLOCATE cursor_name;"
+        },
+        {
+          "type": "h3",
+          "text": "@@FETCH_STATUS 返回值"
+        },
+        {
+          "type": "code",
+          "text": "返回值 | 含义\n0 | FETCH 成功，获取到一行数据\n-1 | FETCH 失败或行不在结果集中（已到末尾）\n-2 | 提取的行不存在（被删除）"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 游标完整生命周期模板（生产标准） DECLARE @v1 VARCHAR(50), @v2 INT; DECLARE cur_name CURSOR LOCAL FAST_FORWARD FOR SELECT col1, col2 FROM #temp WHERE ...; OPEN cur_name; FETCH NEXT FROM cur_name INTO @v1, @v2; WHILE @@FETCH_STATUS = 0 BEGIN     -- 逐行处理逻辑     FETCH NEXT FROM cur_name INTO @v1, @v2; END CLOSE cur_name; DEALLOCATE cur_name;"
+        },
+        {
+          "type": "warning",
+          "text": "游标风险提示：   忘记在循环末尾 FETCH：如果 WHILE 循环体内忘记 FETCH NEXT，@@FETCH_STATUS 永远为 0，导致无限循环。这是最常见的游标 Bug   忘记 CLOSE/DEALLOCATE：游标不释放会占用服务器资源，导致内存泄漏。必须在 CATCH 块中也处理游标清理（如脚本 Step 2 所示）   CLOSE vs DEALLOCATE：CLOSE 关闭游标但保留定义，可以重新 OPEN。DEALLOCATE 完全释放游标资源。已关闭的游标只需 DEALLOCATE，已打开的游标需要先 CLOSE 再 DEALLOCATE   性能问题：游标逐行处理比集合操作慢几个数量级。在可能的情况下，应优先考虑使用 WHILE + 临时表、窗口函数或 CASE WHEN 等集合方式替代   @@FETCH_STATUS 是全局的：如果嵌套游标，内层游标的 FETCH 会覆盖 @@FETCH_STATUS，导致外层循环判断出错。解决方案：内层游标使用独立变量保存状态，或避免嵌套游标   游标在事务中：游标在事务中会持有锁。长时间运行的游标循环会阻塞其他会话。应尽量缩短游标的事务范围   LOCAL vs GLOBAL：默认行为由数据库设置决定。建议显式指定 LOCAL，避免游标泄漏到外层批处理"
+        },
+        {
+          "type": "tip",
+          "text": "游标替代方案——使用 WHILE + IDENTITY 逐行处理： -- 为临时表添加自增ID，用 WHILE 循环替代游标 DECLARE @i INT = 1, @max INT; SELECT @max = MAX(id) FROM #temp; WHILE @i <= @max BEGIN     SELECT @v1 = col1, @v2 = col2     FROM #temp WHERE id = @i;     -- 逐行处理     SET @i = @i + 1; END"
+        }
+      ]
+    },
+    {
+      "id": "s10",
+      "title": "10CASE 表达式",
+      "badge": "10",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "CASE 表达式是 SQL 中的条件表达式，类似于其他语言的 if-else 或 switch-case。它返回一个值，可以在 SELECT、UPDATE、ORDER BY、HAVING 等子句中使用。 两种形式：   简单 CASE：CASE expr WHEN val1 THEN result1 WHEN val2 THEN result2 ELSE default END   搜索 CASE：CASE WHEN cond1 THEN result1 WHEN cond2 THEN result2 ELSE default END"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- 在 SELECT 中使用 CASE 进行条件计算\nSELECT\n    a.line_no,\n    CASE\n        WHEN a.mold_count > a.mold_limit THEN '超过下限'\n        WHEN a.mold_count = a.mold_limit THEN '刚好达到'\n        ELSE '正常'\n    END AS mold_status,\n    CASE a.priority\n        WHEN 1 THEN '高'\n        WHEN 2 THEN '中'\n        ELSE '低'\n    END AS priority_desc\nFROM #jt_moldinfo a;"
+        },
+        {
+          "type": "h3",
+          "text": "通用完整语法 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- 1. 简单 CASE（等值匹配）\nCASE input_expr\n    WHEN val1 THEN result1\n    WHEN val2 THEN result2\n    [ ELSE default_result ]\nEND\n\n-- 2. 搜索 CASE（条件判断，更灵活）\nCASE\n    WHEN cond1 THEN result1\n    WHEN cond2 THEN result2\n    [ ELSE default_result ]\nEND\n\n-- 3. 在 UPDATE 中使用 CASE\nUPDATE products\nSET price = CASE\n    WHEN category = 'A' THEN price * 1.1\n    WHEN category = 'B' THEN price * 1.05\n    ELSE price\nEND;\n\n-- 4. 在 ORDER BY 中使用 CASE（动态排序）\nSELECT * FROM orders\nORDER BY CASE @sort_col\n    WHEN 'date' THEN order_date\n    WHEN 'amount' THEN amount\nEND DESC;\n\n-- 5. 在聚合中使用 CASE（条件计数）\nSELECT\n    SUM(CASE WHEN status = 'A' THEN 1 ELSE 0 END) AS active_count,\n    SUM(CASE WHEN status = 'I' THEN 1 ELSE 0 END) AS inactive_count\nFROM users;"
+        },
+        {
+          "type": "warning",
+          "text": "CASE 表达式风险提示：   忘记 ELSE 子句：如果所有 WHEN 都不匹配且没有 ELSE，CASE 返回 NULL。这可能导致意外结果，建议始终添加 ELSE   简单 CASE 不支持范围：CASE col WHEN > 10 THEN ... 是错误的。简单 CASE 只支持等值匹配。范围判断必须用搜索 CASE   NULL 匹配问题：在简单 CASE 中，CASE NULL WHEN NULL THEN ... 不会匹配（NULL = NULL 结果为 UNKNOWN）。必须用搜索 CASE 的 CASE WHEN col IS NULL THEN ...   结果类型一致性：所有 THEN/ELSE 分支的返回值类型必须兼容。SQL Server 会进行隐式转换，可能丢失精度   短路与顺序：CASE 按 WHEN 顺序依次判断，第一个为 TRUE 的分支返回。后续分支不再评估。利用此特性可以简化嵌套条件"
+        }
+      ]
+    },
+    {
+      "id": "s11",
+      "title": "11窗口函数（OVER / PARTITION BY）完整列表",
+      "badge": "11",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "窗口函数（Window Functions）是 SQL Server 中最强大的分析功能之一。它们在一组行（\"窗口\"）上计算值，而不像聚合函数那样将多行合并为一行。每个行都保留并附带计算结果。 核心语法： 函数名() OVER ([PARTITION BY col1, col2] [ORDER BY col3] [ROWS/RANGE frame]) 三大要素：   PARTITION BY：将数据分组，每个组独立计算窗口函数   ORDER BY：窗口内行的排序方向，影响排名类函数的结果   ROWS / RANGE：帧定义，控制窗口范围（如\"当前行及前3行\"）"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- 1. SUM() OVER (PARTITION BY ...)：分组累计求和\nSELECT\n    a.line_no,\n    a.eqm_no,\n    SUM(a.qty) OVER (PARTITION BY a.line_no) AS line_total,\n\n-- 2. COUNT() OVER (PARTITION BY ...)：分组计数\n    COUNT(*) OVER (PARTITION BY a.line_no) AS line_count,\n\n-- 3. ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)：分组排名\n    ROW_NUMBER() OVER (\n        PARTITION BY a.line_no\n        ORDER BY a.priority DESC\n    ) AS rn\nFROM #jt_moldinfo a;"
+        },
+        {
+          "type": "h3",
+          "text": "窗口函数完整列表"
+        },
+        {
+          "type": "h3",
+          "text": "一、排名函数（Ranking Functions）"
+        },
+        {
+          "type": "code",
+          "text": "函数 | 说明 | 示例 | 特点\nROW_NUMBER() | 为每行分配唯一连续序号 | ROW_NUMBER() OVER (ORDER BY score DESC) | 不重复，从1开始\nRANK() | 排名，相同值同排名，跳号 | RANK() OVER (ORDER BY score DESC) | 1,1,3,4,4,6\nDENSE_RANK() | 密集排名，相同值同排名，不跳号 | DENSE_RANK() OVER (ORDER BY score DESC) | 1,1,2,3,3,4\nNTILE(n) | 将行分为 n 组，返回组号 | NTILE(4) OVER (ORDER BY score DESC) | 分桶/分位数"
+        },
+        {
+          "type": "h3",
+          "text": "二、聚合函数（Aggregate Functions）"
+        },
+        {
+          "type": "code",
+          "text": "函数 | 说明 | 示例\nSUM() OVER | 分组求和 | SUM(qty) OVER (PARTITION BY line_no)\nCOUNT() OVER | 分组计数 | COUNT(*) OVER (PARTITION BY line_no)\nAVG() OVER | 分组平均 | AVG(price) OVER (PARTITION BY cat)\nMIN() OVER | 分组最小值 | MIN(price) OVER (PARTITION BY cat)\nMAX() OVER | 分组最大值 | MAX(price) OVER (PARTITION BY cat)\nCOUNT(DISTINCT) OVER | 分组去重计数 | SQL Server 不支持，需用 DENSE_RANK 替代\nSTRING_AGG() OVER | 分组字符串拼接 | STRING_AGG(name,',') OVER (PARTITION BY cat) (2017+)"
+        },
+        {
+          "type": "h3",
+          "text": "三、偏移函数（Offset Functions）"
+        },
+        {
+          "type": "code",
+          "text": "函数 | 说明 | 示例\nLAG(col, n, default) | 访问前 n 行的值 | LAG(price, 1, 0) OVER (ORDER BY date)\nLEAD(col, n, default) | 访问后 n 行的值 | LEAD(price, 1, 0) OVER (ORDER BY date)\nFIRST_VALUE(col) | 窗口第一行的值 | FIRST_VALUE(price) OVER (ORDER BY date)\nLAST_VALUE(col) | 窗口最后一行的值 | LAST_VALUE(price) OVER (ORDER BY date ROWS BETWEEN ...)"
+        },
+        {
+          "type": "h3",
+          "text": "四、统计分布函数（Statistical Functions）"
+        },
+        {
+          "type": "code",
+          "text": "函数 | 说明\nPERCENT_RANK() | 百分位排名（0.0~1.0）\nCUME_DIST() | 累积分布值\nPERCENTILE_CONT(p) | 连续百分位数（可插值）\nPERCENTILE_DISC(p) | 离散百分位数（取实际值）"
+        },
+        {
+          "type": "h3",
+          "text": "窗口帧（Frame）定义 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- ROWS 帧：按物理行数\nSUM(qty) OVER (\n    ORDER BY date\n    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW\n)  -- 当前3行（前2行+当前行）的移动求和\n\n-- RANGE 帧：按逻辑范围值\nSUM(qty) OVER (\n    ORDER BY date\n    RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n)  -- 从第一行到当前行的累计求和（running total）\n\n-- 帧定义关键字\n-- UNBOUNDED PRECEDING：窗口起点（第一行）\n-- UNBOUNDED FOLLOWING：窗口终点（最后一行）\n-- CURRENT ROW：当前行\n-- n PRECEDING：前 n 行\n-- n FOLLOWING：后 n 行"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 ROW_NUMBER 去重取每组第一条模式 -- 方法1：用 CTE + ROW_NUMBER 过滤 WITH ranked AS (     SELECT *,         ROW_NUMBER() OVER (             PARTITION BY line_no ORDER BY priority DESC         ) AS rn     FROM #jt_moldinfo ) SELECT * FROM ranked WHERE rn = 1; -- 方法2：SELECT INTO 后再 WHERE 过滤（脚本中使用的方式） SELECT ...,     ROW_NUMBER() OVER (PARTITION BY line_no ORDER BY priority) AS rn INTO #temp FROM ...; SELECT * FROM #temp WHERE rn = 1;"
+        },
+        {
+          "type": "warning",
+          "text": "窗口函数风险提示：   LAST_VALUE 陷阱：LAST_VALUE() 不加帧定义时，默认帧为 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW，即\"第一行到当前行\"。取每组最后一条需要显式指定 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING   性能问题：窗口函数需要排序（ORDER BY），大数据量时可能产生 Sort 运算符。确保 PARTITION BY 和 ORDER BY 列有索引   ROW_NUMBER 不能在 WHERE 中使用：窗口函数只能在 SELECT 和 ORDER BY 中使用，不能直接在 WHERE/HAVING 中过滤。需要通过 CTE 或子查询包装后再过滤   NULL 值排序：在 ORDER BY 中，NULL 默认排在最前面（ASC）或最后面（DESC）。使用 CASE WHEN col IS NULL THEN 1 ELSE 0 END 控制 NULL 位置   聚合函数 OVER 不加 ORDER BY：如果不加 ORDER BY，聚合函数对整个分区计算同一值。加上 ORDER BY 后变为累计/滑动聚合，语义完全不同"
+        }
+      ]
+    },
+    {
+      "id": "s12",
+      "title": "12子查询与 EXISTS / IN",
+      "badge": "12",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "子查询是嵌套在另一个查询中的查询。根据返回结果可分为：   标量子查询：返回单个值，可用于 SELECT、WHERE 等   多值子查询：返回一列多行，常与 IN/ANY/ALL 配合   表子查询：返回多列多行，常用于 FROM 子句（派生表）   相关子查询：引用外层查询的列，每行执行一次   EXISTS 子查询：只判断是否存在行，不返回具体值"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- EXISTS 子查询 + INNER JOIN\nSELECT a.*\nFROM #jt_moldinfo a\nWHERE EXISTS (\n    SELECT 1\n    FROM tb_task b WITH (NOLOCK)\n        INNER JOIN tb_task_detail c WITH (NOLOCK)\n            ON b.task_id = c.task_id\n    WHERE b.line_no = a.line_no\n      AND b.status = 'A'\n);"
+        },
+        {
+          "type": "h3",
+          "text": "通用完整语法 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- 1. EXISTS：判断是否存在（推荐，性能好）\nSELECT * FROM orders o\nWHERE EXISTS (\n    SELECT 1 FROM items i\n    WHERE i.order_id = o.id AND i.price > 100\n);\n\n-- 2. NOT EXISTS：判断不存在\nSELECT * FROM customers c\nWHERE NOT EXISTS (\n    SELECT 1 FROM orders o\n    WHERE o.cust_id = c.id\n);\n\n-- 3. IN：值在列表中\nSELECT * FROM orders\nWHERE status IN ('A', 'B', 'C');\n\n-- 4. IN 子查询\nSELECT * FROM orders\nWHERE cust_id IN (SELECT id FROM customers WHERE vip = 1);\n\n-- 5. NOT IN 子查询\nSELECT * FROM orders\nWHERE cust_id NOT IN (SELECT id FROM blacklist);\n\n-- 6. 标量子查询\nSELECT o.*, (SELECT COUNT(*) FROM items i WHERE i.order_id = o.id) AS item_count\nFROM orders o;\n\n-- 7. 派生表（FROM 子句中的子查询）\nSELECT t.* FROM (\n    SELECT cat, COUNT(*) AS cnt FROM products GROUP BY cat\n) t WHERE t.cnt > 10;\n\n-- 8. ANY / ALL / SOME\nSELECT * FROM products\nWHERE price > ALL (SELECT price FROM products WHERE cat = 'A');"
+        },
+        {
+          "type": "h3",
+          "text": "EXISTS vs IN vs JOIN 性能对比"
+        },
+        {
+          "type": "code",
+          "text": "方式 | 返回 NULL 行为 | 性能（通常） | 推荐场景\nEXISTS | 不受 NULL 影响 | 优（找到一行即停止） | 判断关联存在性（首选）\nIN | 子查询含 NULL 时需注意 | 良 | 固定值列表\nJOIN | 不受 NULL 影响 | 优（但可能产生重复行） | 需要关联表字段\nNOT EXISTS | 不受 NULL 影响 | 优 | 判断关联不存在（首选）\nNOT IN | 子查询含 NULL 时结果为空！ | 差（全表扫描子查询） | 避免使用，改用 NOT EXISTS"
+        },
+        {
+          "type": "warning",
+          "text": "NOT IN NULL 陷阱（高风险）风险提示 -- 危险场景：子查询结果中包含 NULL SELECT * FROM orders WHERE cust_id NOT IN (     SELECT cust_id FROM blacklist ); -- 如果 blacklist 表中有任何一行的 cust_id 为 NULL， -- 整个查询将返回 0 行！ -- 因为 NULL <> value 的结果是 UNKNOWN，NOT UNKNOWN 仍然是 UNKNOWN -- WHERE 只接受 TRUE，UNKNOWN 被过滤掉 -- 正确做法：使用 NOT EXISTS SELECT * FROM orders o WHERE NOT EXISTS (     SELECT 1 FROM blacklist b     WHERE b.cust_id = o.cust_id ); -- 或者在 NOT IN 中过滤 NULL SELECT * FROM orders WHERE cust_id NOT IN (     SELECT cust_id FROM blacklist WHERE cust_id IS NOT NULL );"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 EXISTS + INNER JOIN 关联检查模式 SELECT a.* FROM target a WHERE EXISTS (     SELECT 1     FROM table_b b WITH (NOLOCK)         INNER JOIN table_c c WITH (NOLOCK)             ON b.id = c.id     WHERE b.key = a.key   -- 关联外层查询       AND b.status = 'A' );"
+        }
+      ]
+    },
+    {
+      "id": "s13",
+      "title": "13日期时间函数 完整列表",
+      "badge": "13",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "SQL Server 提供丰富的日期时间函数。以下是所有常用日期函数的完整列表及说明。"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- 获取当前小时数（0-23）\nDATEPART(HOUR, GETDATE())\n\n-- 获取5小时前的时间\nDATEADD(HOUR, -5, GETDATE())\n\n-- 获取当前时间到整点的小时差（截断到整点）\nDATEDIFF(HOUR, 0, GETDATE())"
+        },
+        {
+          "type": "h3",
+          "text": "日期时间函数完整列表"
+        },
+        {
+          "type": "code",
+          "text": "函数 | 说明 | 示例 | 返回类型\nGETDATE() | 当前日期时间（服务器本地时区） | GETDATE() → 2026-08-07 14:30:15.123 | DATETIME\nSYSDATETIME() | 当前日期时间（高精度） | SYSDATETIME() → 2026-08-07 14:30:15.1234567 | DATETIME2(7)\nSYSUTCDATETIME() | 当前 UTC 时间（高精度） | SYSUTCDATETIME() | DATETIME2(7)\nGETUTCDATE() | 当前 UTC 时间 | GETUTCDATE() | DATETIME\nSYSDATETIMEOFFSET() | 当前时间含时区偏移 | SYSDATETIMEOFFSET() | DATETIMEOFFSET(7)\nDATEADD(unit, n, date) | 日期加/减指定间隔 | DATEADD(DAY, 7, GETDATE()) | 同输入类型\nDATEDIFF(unit, d1, d2) | 两日期之差 | DATEDIFF(DAY, '2026-01-01', GETDATE()) | INT\nDATEDIFF_BIG(unit, d1, d2) | 两日期之差（大值，BIGINT） | DATEDIFF_BIG(MILLISECOND, '2000-01-01', GETDATE()) | BIGINT\nDATEPART(unit, date) | 提取日期的指定部分 | DATEPART(HOUR, GETDATE()) → 14 | INT\nDATENAME(unit, date) | 提取日期部分名称（字符串） | DATENAME(WEEKDAY, GETDATE()) → 'Thursday' | NVARCHAR\nYEAR(date) | 提取年份 | YEAR(GETDATE()) → 2026 | INT\nMONTH(date) | 提取月份 | MONTH(GETDATE()) → 8 | INT\nDAY(date) | 提取日期 | DAY(GETDATE()) → 7 | INT\nDATETRUNC(unit, date) | 截断日期到指定精度（2022+） | DATETRUNC(HOUR, GETDATE()) | 同输入类型\nEOMONTH(date [, offset]) | 月末日期 | EOMONTH(GETDATE()) → 2026-08-31 | DATE\nISDATE(expr) | 判断是否为有效日期 | ISDATE('2026-13-01') → 0 | INT (0/1)\nTRY_PARSE(str AS type [USING culture]) | 尝试解析（失败返回NULL） | TRY_PARSE('08/07/2026' AS DATE USING 'en-US') | 指定类型\nFORMAT(date, format [, culture]) | .NET 格式化日期 | FORMAT(GETDATE(), 'yyyy-MM-dd HH:mm:ss') | NVARCHAR\nSWITCHOFFSET(datetimesoffset, offset) | 切换时区偏移 | SWITCHOFFSET(SYSDATETIMEOFFSET(), '+08:00') | DATETIMEOFFSET\nTODATETIMEOFFSET(expr, offset) | 转换为带时区的类型 | TODATETIMEOFFSET(GETDATE(), '+08:00') | DATETIMEOFFSET"
+        },
+        {
+          "type": "h3",
+          "text": "DATEPART / DATEADD / DATEDIFF 日期单位完整列表"
+        },
+        {
+          "type": "code",
+          "text": "单位 | 缩写 | 说明\nYEAR | yy, yyyy | 年\nQUARTER | qq, q | 季度\nMONTH | mm, m | 月\nDAYOFYEAR | dy, y | 年内天数（1-366）\nDAY | dd, d | 日\nWEEK | wk, ww | 周\nWEEKDAY | dw | 星期几（DATEPART返回数字，DATENAME返回名称）\nHOUR | hh | 小时\nMINUTE | mi, n | 分钟\nSECOND | ss, s | 秒\nMILLISECOND | ms | 毫秒\nMICROSECOND | mcs | 微秒\nNANOSECOND | ns | 纳秒\nTZoffset | tz | 时区偏移（分钟）\nISO_WEEK | isowk | ISO 周号"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 常用日期计算模式 -- 今天零点 CAST(GETDATE() AS DATE) -- 或 DATEADD(DAY, 0, DATEDIFF(DAY, 0, GETDATE())) -- 本月第一天 DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0) -- 本月最后一天 EOMONTH(GETDATE()) -- 上月最后一天 EOMONTH(GETDATE(), -1) -- 本周一 DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0) -- N小时前（脚本中使用的方式） DATEADD(HOUR, -5, GETDATE()) -- 截断到整点（去除分钟秒） DATEADD(HOUR, DATEDIFF(HOUR, 0, GETDATE()), 0)"
+        },
+        {
+          "type": "warning",
+          "text": "日期函数风险提示：   DATEDIFF 边界问题：DATEDIFF(HOUR, '2026-01-01 01:59:59', '2026-01-01 02:00:01') 返回 1，虽然实际只差 2 秒！DATEDIFF 计算的是\"跨越了几个边界\"，不是精确差值   GETDATE vs SYSDATETIME 精度：GETDATE 精度为 3.33ms，SYSDATETIME 精度为 100ns。高精度场景必须用 SYSDATETIME   DATEPART WEEKDAY 依赖设置：DATEPART(WEEKDAY, date) 的返回值受 @@DATEFIRST 设置影响。默认 US 英语为 7（周日=1, 周六=7）。使用 SET DATEFIRST 1 设置周一为 1   FORMAT 函数性能：FORMAT() 调用 .NET CLR，性能远低于 CONVERT。在循环或大数据量中避免使用   时区问题：GETDATE 返回服务器本地时间。如果服务器在不同时区，建议使用 SYSUTCDATETIME() 存 UTC，查询时转换   日期字符串格式：始终使用 YYYYMMDD 或 YYYY-MM-DDTHH:MM:SS 格式以避免区域设置歧义。'2026-08-07' 在某些设置下可能被解析为 2月7日   1900-01-01 基准：DATEDIFF(HOUR, 0, GETDATE()) 中的 0 代表 1900-01-01 00:00:00。这是 SQL Server DATETIME 的内部基准日期"
+        }
+      ]
+    },
+    {
+      "id": "s14",
+      "title": "14字符串函数 完整列表",
+      "badge": "14",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "以下是 SQL Server 中所有常用字符串函数的完整列表。"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- STRING_AGG：将多行字符串聚合为一个分隔字符串\nSELECT STRING_AGG(b.emp_no, ',')\nFROM tb_mes_msg_type_users b;\n\n-- CAST 转换为字符串用于拼接\nCAST(@mold_count AS VARCHAR(20))"
+        },
+        {
+          "type": "h3",
+          "text": "字符串函数完整列表"
+        },
+        {
+          "type": "code",
+          "text": "函数 | 说明 | 示例 | 返回\nLEN(str) | 字符数（不含尾部空格） | LEN('你好 ') → 2 | INT\nDATALENGTH(str) | 字节数 | DATALENGTH(N'好') → 2 | INT\nLEFT(str, n) | 左取 n 个字符 | LEFT('Hello', 3) → 'Hel' | VARCHAR/NVARCHAR\nRIGHT(str, n) | 右取 n 个字符 | RIGHT('Hello', 3) → 'llo' | VARCHAR/NVARCHAR\nSUBSTRING(str, start, len) | 截取子串（从1开始） | SUBSTRING('Hello', 2, 3) → 'ell' | VARCHAR/NVARCHAR\nCHARINDEX(sub, str [, start]) | 查找子串位置（从1开始，未找到返回0） | CHARINDEX('lo', 'Hello') → 4 | INT\nPATINDEX('%pattern%', str) | 通配符查找位置 | PATINDEX('%[0-9]%', 'ab3cd') → 3 | INT\nREPLACE(str, old, new) | 替换所有匹配 | REPLACE('a-b-c', '-', '/') → 'a/b/c' | VARCHAR/NVARCHAR\nSTUFF(str, start, len, new) | 删除指定位置字符并插入新串 | STUFF('ABCDEF', 2, 3, 'XY') → 'AXYEF' | VARCHAR/NVARCHAR\nUPPER(str) | 转大写 | UPPER('hello') → 'HELLO' | VARCHAR/NVARCHAR\nLOWER(str) | 转小写 | LOWER('HELLO') → 'hello' | VARCHAR/NVARCHAR\nLTRIM(str) | 去除左空格 | LTRIM(' hi') → 'hi' | VARCHAR/NVARCHAR\nRTRIM(str) | 去除右空格 | RTRIM('hi ') → 'hi' | VARCHAR/NVARCHAR\nTRIM(str) | 去除两端空格（2017+） | TRIM(' hi ') → 'hi' | VARCHAR/NVARCHAR\nTRIM('chars' FROM str) | 去除指定字符（2022+） | TRIM('0' FROM '00hi00') → 'hi' | VARCHAR/NVARCHAR\nREPLICATE(str, n) | 重复 n 次 | REPLICATE('-', 5) → '-----' | VARCHAR/NVARCHAR\nREVERSE(str) | 反转字符串 | REVERSE('Hello') → 'olleH' | VARCHAR/NVARCHAR\nSPACE(n) | 生成 n 个空格 | SPACE(3) → ' ' | VARCHAR\nCONCAT(str1, str2, ...) | 拼接字符串（NULL 自动转空串） | CONCAT('a', NULL, 'b') → 'ab' | NVARCHAR\nCONCAT_WS(sep, str1, str2, ...) | 用分隔符拼接（跳过NULL） | CONCAT_WS(',', 'a', NULL, 'b') → 'a,b' | NVARCHAR\nSTRING_AGG(col, sep) | 多行聚合成一个字符串（2017+） | STRING_AGG(name, ',') | NVARCHAR\nFORMAT(val, fmt [, culture]) | .NET 格式化 | FORMAT(1234567, 'N0') → '1,234,567' | NVARCHAR\nTRANSLATE(str, chars, repl) | 批量替换字符（2017+） | TRANSLATE('2[3]4', '[]', '()') → '2(3)4' | VARCHAR/NVARCHAR\nQUOTENAME(str [, quote]) | 添加括号引用 | QUOTENAME('col') → '[col]' | NVARCHAR\nUNICODE(str) | 首字符的 Unicode 编码 | UNICODE('A') → 65 | INT\nNCHAR(n) | Unicode 编码转字符 | NCHAR(65) → 'A' | NCHAR(1)\nASCII(str) | 首字符的 ASCII 码 | ASCII('A') → 65 | INT\nCHAR(n) | ASCII 码转字符 | CHAR(65) → 'A' | CHAR(1)\nSOUNDEX(str) | 语音编码（4字符） | SOUNDEX('Smith') → 'S530' | VARCHAR\nDIFFERENCE(s1, s2) | 语音相似度（0-4） | DIFFERENCE('Smith', 'Smythe') → 4 | INT\nSTR(num [, len [, dec]]) | 数字转字符串 | STR(123.456, 6, 2) → '123.46' | CHAR"
+        },
+        {
+          "type": "h3",
+          "text": "旧版本 STRING_AGG 替代方案 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- SQL Server 2017+：STRING_AGG\nSELECT STRING_AGG(emp_no, ',') FROM users;\n\n-- SQL Server 2016 及以下：FOR XML PATH\nSELECT STUFF((\n    SELECT ',' + emp_no\n    FROM users\n    FOR XML PATH(''), TYPE\n).value('.', 'VARCHAR(MAX)'), 1, 1, '');\n\n-- 去重后聚合\nSELECT STRING_AGG(emp_no, ',')\nFROM (SELECT DISTINCT emp_no FROM users) t;"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 STRING_AGG 拼接收件人列表模式 DECLARE @recipient VARCHAR(2000); SELECT @recipient = STRING_AGG(b.emp_no, ',') FROM tb_mes_msg_type a     LEFT JOIN tb_mes_msg_type_users b         ON a.msg_type_code = b.msg_type_code WHERE a.msg_type_code = 'MJTBCC';"
+        },
+        {
+          "type": "warning",
+          "text": "字符串函数风险提示：   LEN vs DATALENGTH：LEN 返回字符数，DATALENGTH 返回字节数。对于 NVARCHAR，DATALENGTH(N'你好') = 4（每字2字节），而 LEN(N'你好') = 2   + 拼接 NULL：'a' + NULL 结果为 NULL（除非 SET CONCAT_NULL_YIELDS_NULL OFF）。使用 CONCAT() 可避免此问题，NULL 自动转为空串   SUBSTRING 越界：SUBSTRING('Hi', 1, 100) 返回 'Hi'（不报错，截取到末尾）。但如果 start 为 0 或负数会报错   CHARINDEX 大小写：默认取决于排序规则（COLLATION）。大小写不敏感排序规则下 CHARINDEX('a', 'ABC') 返回 1   VARCHAR vs NVARCHAR：中文字符在 VARCHAR 中可能乱码（取决于排序规则）。处理中文应使用 NVARCHAR 或在字符串前加 N：N'中文'   STRING_AGG 结果长度：聚合结果可能超出 VARCHAR(8000) 限制。使用 VARCHAR(MAX) 或 NVARCHAR(MAX) 避免   FORMAT 性能：FORMAT() 内部调用 .NET CLR，性能比 CONVERT 低约 10 倍。生产环境避免在循环或大数据量中使用"
+        }
+      ]
+    },
+    {
+      "id": "s15",
+      "title": "15NULL 处理与三值逻辑 核心重点",
+      "badge": "15",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "NULL 是 SQL 中最容易被误解的概念之一。NULL 不等于 0、不等于空字符串、不等于\"没有值\"。NULL 表示\"未知值\"（Unknown）或\"不适用\"（Not Applicable）。理解 NULL 的行为是写出正确 SQL 的关键。 SQL 使用三值逻辑（Three-Valued Logic, 3VL），逻辑表达式的结果有三个可能值：TRUE、FALSE、UNKNOWN。"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- ISNULL 贯穿整个脚本的使用\nISNULL(a.mold_count, 0)         -- NULL 替换为 0\nISNULL(b.total_count, 0)      -- LEFT JOIN 不匹配时替换为 0\nISNULL(@recipient, '')       -- NULL 替换为空字符串"
+        },
+        {
+          "type": "h3",
+          "text": "一、三值逻辑详解"
+        },
+        {
+          "type": "p",
+          "text": "在 SQL 中，任何包含 NULL 的比较运算结果都是 UNKNOWN，而非 TRUE 或 FALSE。WHERE 子句只接受 TRUE，UNKNOWN 和 FALSE 一样被过滤掉。"
+        },
+        {
+          "type": "code",
+          "text": "表达式 | 结果 | 说明\n5 = 5 | TRUE | 相等比较\n5 = 6 | FALSE | 不等比较\nNULL = 5 | UNKNOWN | NULL 与任何值比较都是 UNKNOWN\nNULL = NULL | UNKNOWN | 两个未知值无法判断是否相等\nNULL <> 5 | UNKNOWN | 不等于也是 UNKNOWN\nNULL > 5 | UNKNOWN | 大小比较也是 UNKNOWN"
+        },
+        {
+          "type": "h3",
+          "text": "逻辑运算的真值表"
+        },
+        {
+          "type": "code",
+          "text": "A | B | A AND B | A OR B | NOT A\nTRUE | TRUE | TRUE | TRUE | FALSE\nTRUE | FALSE | FALSE | TRUE | FALSE\nTRUE | UNKNOWN | UNKNOWN | TRUE | FALSE\nFALSE | FALSE | FALSE | FALSE | TRUE\nFALSE | UNKNOWN | FALSE | UNKNOWN | TRUE\nUNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN"
+        },
+        {
+          "type": "warning",
+          "text": "三值逻辑的关键结论：   NOT (UNKNOWN) = UNKNOWN，不是 TRUE！   UNKNOWN AND TRUE = UNKNOWN   UNKNOWN OR TRUE = TRUE（OR 中有一个 TRUE 即为 TRUE）   UNKNOWN AND FALSE = FALSE（AND 中有一个 FALSE 即为 FALSE）   WHERE 子句只保留 TRUE 的行，UNKNOWN 被过滤"
+        },
+        {
+          "type": "h3",
+          "text": "二、NULL 在比较中的行为"
+        },
+        {
+          "type": "code",
+          "text": "-- 场景：查找 status 不等于 'A' 的行\nSELECT * FROM orders WHERE status <> 'A';\n-- 如果某行 status 为 NULL，该行不会被返回！\n-- 因为 NULL <> 'A' 的结果是 UNKNOWN，被 WHERE 过滤\n\n-- 正确写法：显式包含 NULL\nSELECT * FROM orders WHERE status <> 'A' OR status IS NULL;\n-- 或\nSELECT * FROM orders WHERE ISNULL(status, '') <> 'A';"
+        },
+        {
+          "type": "warning",
+          "text": "IS NULL vs = NULL（高频错误） -- 错误写法：永远返回 0 行 SELECT * FROM orders WHERE status = NULL; -- 因为 NULL = NULL 结果是 UNKNOWN，WHERE 只接受 TRUE -- 正确写法 SELECT * FROM orders WHERE status IS NULL; -- 例外：SET ANSI_NULLS OFF 时 = NULL 可以工作 -- 但强烈不推荐！ANSI_NULLS OFF 已被废弃"
+        },
+        {
+          "type": "h3",
+          "text": "三、NULL 在聚合函数中的行为"
+        },
+        {
+          "type": "p",
+          "text": "聚合函数（SUM、AVG、COUNT、MIN、MAX）自动忽略 NULL 值，但 COUNT(*) 例外。"
+        },
+        {
+          "type": "code",
+          "text": "-- 假设表数据：\n-- id | price\n-- ---|------\n--  1 |  100\n--  2 | NULL\n--  3 |  200\n\nSELECT\n    COUNT(*) AS cnt_all,         -- 3（计算所有行，包括 NULL）\n    COUNT(price) AS cnt_price,    -- 2（忽略 NULL）\n    SUM(price) AS sum_price,      -- 300（忽略 NULL，不是 NULL）\n    AVG(price) AS avg_price,      -- 150（300/2，不是 300/3！）\n    MIN(price) AS min_price,      -- 100\n    MAX(price) AS max_price       -- 200\nFROM products;\n\n-- 如果所有行都是 NULL：\n-- COUNT(price) = 0\n-- SUM(price) = NULL（不是 0！）\n-- AVG(price) = NULL\n-- MIN/MAX(price) = NULL"
+        },
+        {
+          "type": "warning",
+          "text": "聚合函数 NULL 风险：   AVG 计算陷阱：AVG(price) 忽略 NULL 行后计算平均值。如果 3 行中 1 行为 NULL，AVG = SUM/COUNT(非NULL) = 300/2 = 150，而非 300/3 = 100。如果业务需要将 NULL 视为 0，必须 AVG(ISNULL(price, 0))   SUM 全 NULL 返回 NULL：如果所有行都是 NULL，SUM 返回 NULL 而非 0。脚本中用 ISNULL(SUM(col), 0) 处理   COUNT(*) vs COUNT(col)：COUNT(*) 计算所有行（含全 NULL 行），COUNT(col) 只计算 col 非 NULL 的行。混用会导致统计错误   GROUP BY 中的 NULL：GROUP BY 将所有 NULL 值分到同一组。NULL 被视为\"相等\"进行分组   DISTINCT 中的 NULL：DISTINCT 将所有 NULL 视为相同值，只保留一个   ORDER BY 中的 NULL：默认 ASC 时 NULL 排在最前，DESC 时排在最后。可通过 CASE 控制位置"
+        },
+        {
+          "type": "h3",
+          "text": "四、NULL 在字符串拼接中的行为"
+        },
+        {
+          "type": "code",
+          "text": "-- 默认行为（SET CONCAT_NULL_YIELDS_NULL ON）：\nSELECT 'Hello' + NULL;          -- 结果: NULL\nSELECT 'Hello' + NULL + 'World';  -- 结果: NULL\n\n-- 任何字符串 + NULL = NULL（除非改变设置）\n\n-- 解决方案1：ISNULL 替换\nSELECT 'Hello ' + ISNULL(name, 'Unknown');\n\n-- 解决方案2：CONCAT 函数（自动将 NULL 转为空串）\nSELECT CONCAT('Hello ', NULL, 'World');  -- 结果: 'Hello World'\n\n-- 解决方案3：CONCAT_WS（跳过 NULL，用分隔符连接）\nSELECT CONCAT_WS(', ', 'Alice', NULL, 'Bob');  -- 结果: 'Alice, Bob'\n\n-- 解决方案4：SET CONCAT_NULL_YIELDS_NULL OFF（不推荐）\nSET CONCAT_NULL_YIELDS_NULL OFF;\nSELECT 'Hello ' + NULL;  -- 结果: 'Hello '\n-- 此设置已废弃，不应在生产中使用"
+        },
+        {
+          "type": "h3",
+          "text": "五、ISNULL vs COALESCE 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "特性 | ISNULL() | COALESCE()\n参数数量 | 2 个（expr, replacement） | 2~N 个（expr1, expr2, ..., exprN）\n返回类型 | 第一个参数的类型 | 所有参数中优先级最高的类型\n标准 SQL | 否（T-SQL 扩展） | 是（ANSI SQL 标准）\n性能 | 略快（内置函数） | 略慢（实质是 CASE WHEN）\n多参数 | 不支持 | COALESCE(a, b, c, d) 返回第一个非 NULL\nNULL 处理 | ISNULL(NULL, 0) → 0 | COALESCE(NULL, NULL, 0) → 0"
+        },
+        {
+          "type": "code",
+          "text": "-- ISNULL：只能两个参数\nISNULL(@v, 0)                    -- NULL → 0\n\n-- COALESCE：可以多个参数，返回第一个非 NULL\nCOALESCE(@v1, @v2, @v3, 'default')  -- 依次检查\n\n-- 返回类型差异\nDECLARE @v VARCHAR(5) = NULL;\nSELECT ISNULL(@v, 'Hello World');    -- 截断为 'Hello'（VARCHAR(5)）\nSELECT COALESCE(@v, 'Hello World');  -- 返回完整 'Hello World'"
+        },
+        {
+          "type": "h3",
+          "text": "六、SET ANSI_NULLS"
+        },
+        {
+          "type": "code",
+          "text": "-- ANSI_NULLS ON（默认，推荐）\nSET ANSI_NULLS ON;\nSELECT * WHERE col = NULL;    -- 返回 0 行（NULL = NULL → UNKNOWN）\nSELECT * WHERE col <> NULL;   -- 返回 0 行\nSELECT * WHERE col IS NULL;  -- 正确：返回 NULL 行\n\n-- ANSI_NULLS OFF（已废弃，不推荐）\nSET ANSI_NULLS OFF;\nSELECT * WHERE col = NULL;    -- 返回 NULL 行（= NULL 生效）\n\n-- 重要：计算列、索引视图等需要 ANSI_NULLS ON\n-- SQL Server 未来版本将只支持 ON"
+        },
+        {
+          "type": "h3",
+          "text": "七、NOT IN NULL 陷阱（最重要的 NULL 陷阱）"
+        },
+        {
+          "type": "warning",
+          "text": "NOT IN 与 NULL 的致命陷阱 -- 子查询结果包含 NULL 时 SELECT * FROM orders WHERE cust_id NOT IN (     SELECT cust_id FROM blacklist ); -- 等价于： -- WHERE cust_id <> val1 AND cust_id <> val2 AND ... AND cust_id <> NULL -- 最后一个 AND cust_id <> NULL 的结果是 UNKNOWN -- TRUE AND ... AND UNKNOWN = UNKNOWN -- UNKNOWN 被 WHERE 过滤 → 整个查询返回 0 行！ -- 即使 blacklist 中只有一行 cust_id 为 NULL，所有行都会被过滤 -- 正确做法： -- 方案1：NOT EXISTS（推荐） SELECT * FROM orders o WHERE NOT EXISTS (     SELECT 1 FROM blacklist b     WHERE b.cust_id = o.cust_id ); -- 方案2：子查询中排除 NULL SELECT * FROM orders WHERE cust_id NOT IN (     SELECT cust_id FROM blacklist WHERE cust_id IS NOT NULL ); -- 方案3：LEFT JOIN + IS NULL SELECT o.* FROM orders o     LEFT JOIN blacklist b ON o.cust_id = b.cust_id WHERE b.cust_id IS NULL;"
+        },
+        {
+          "type": "h3",
+          "text": "八、NULL 处理函数汇总"
+        },
+        {
+          "type": "code",
+          "text": "函数 | 说明 | 示例\nISNULL(expr, repl) | NULL 替换为 repl | ISNULL(col, 0)\nCOALESCE(expr1, ...) | 返回第一个非 NULL | COALESCE(a, b, c, 'N/A')\nNULLIF(expr1, expr2) | 相等则返回 NULL | NULLIF(col, 0) → col 为 0 时返回 NULL\nIS NULL | 判断是否为 NULL | WHERE col IS NULL\nIS NOT NULL | 判断是否非 NULL | WHERE col IS NOT NULL"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 安全 NULL 处理模式 -- 1. 数值列安全处理 ISNULL(col, 0)                         -- NULL → 0 ISNULL(SUM(col), 0)                   -- SUM 全 NULL → 0 -- 2. 字符串列安全处理 ISNULL(col, '')                        -- NULL → 空串 CONCAT('prefix_', col)                -- NULL 自动处理 -- 3. LEFT JOIN 结果安全处理 UPDATE a SET a.val = ISNULL(b.val, a.val)         -- 不匹配时保持原值 FROM target a LEFT JOIN source b ON ...; -- 4. 除零保护 NULLIF(denominator, 0)                 -- 分母为0 → NULL ISNULL(numerator / NULLIF(denominator, 0), 0)  -- → 0 -- 5. 条件判断中处理 NULL CASE     WHEN col IS NULL THEN 'N/A'     WHEN col = 0 THEN 'Zero'     ELSE 'Value' END"
+        }
+      ]
+    },
+    {
+      "id": "s16",
+      "title": "16RAISERROR / THROW / FORMATMESSAGE 核心重点",
+      "badge": "16",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "SQL Server 提供三种错误抛出机制：RAISERROR、THROW 和 FORMATMESSAGE。它们各有特点和适用场景。"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- 1. RAISERROR 用于时间验证\nRAISERROR('3点-6点、15点-18点期间不允许人工触发自动点模!', 16, 1);\n\n-- 2. FORMATMESSAGE 用于动态错误消息\nSET @msg = FORMATMESSAGE(\n    '自动点模失败。机台当前有任务型号数%s大于下限%s，本次不点模。',\n    CAST(@机台总型号数 AS VARCHAR(20)),\n    CAST(@机台点模下限 AS VARCHAR(20))\n);\nRAISERROR(@msg, 16, 1);"
+        },
+        {
+          "type": "h3",
+          "text": "一、RAISERROR 完整语法"
+        },
+        {
+          "type": "code",
+          "text": "-- 语法1：直接使用字符串消息\nRAISERROR ('message', severity, state [, arg1, arg2, ...]);\n\n-- 语法2：使用消息ID（需先用 sp_addmessage 创建）\nRAISERROR (msg_id, severity, state [, arg1, arg2, ...]);\n\n-- 参数说明\n-- message: 错误消息字符串或消息ID\n-- severity: 严重级别 0-25\n--   0-10: 信息性消息\n--   11-16: 一般错误（可由用户触发）\n--   17-19: 系统资源问题\n--   20-25: 致命错误（连接终止）\n-- state: 状态号 1-255（用于标识错误位置）\n\n-- 示例\nRAISERROR('参数不能为空', 16, 1);\nRAISERROR('用户 %s 不存在', 16, 1, @user_name);\nRAISERROR('错误码: %d', 16, 1, @error_code);\n\n-- WITH 选项\nRAISERROR('错误', 16, 1) WITH NOWAIT;      -- 立即发送到客户端\nRAISERROR('错误', 16, 1) WITH LOG;        -- 记录到错误日志和事件日志\nRAISERROR('错误', 16, 1) WITH SETERROR;    -- 设置 @@ERROR 为 msg_id"
+        },
+        {
+          "type": "h3",
+          "text": "RAISERROR 占位符"
+        },
+        {
+          "type": "code",
+          "text": "占位符 | 类型 | 示例\n%s | 字符串 | RAISERROR('用户%s', 16, 1, @name)\n%d | 有符号整数 | RAISERROR('码%d', 16, 1, @code)\n%u | 无符号整数 | 较少使用\n%o | 无符号八进制 | 较少使用\n%x / %X | 无符号十六进制 | 较少使用\n%f | 浮点数 | 较少使用"
+        },
+        {
+          "type": "h3",
+          "text": "二、THROW 完整语法"
+        },
+        {
+          "type": "code",
+          "text": "-- 语法1：重新抛出当前错误（在 CATCH 块中使用）\nTHROW;\n\n-- 语法2：抛出自定义错误\nTHROW [{ error_number | 'message' | state } [ , ... ] ];\n\n-- 示例\nTHROW 50001, '参数不能为空', 1;\n\n-- 在 CATCH 块中重新抛出\nBEGIN CATCH\n    IF @@TRANCOUNT > 0\n        ROLLBACK TRANSACTION;\n    THROW;  -- 保留原始错误信息，重新抛给调用者\nEND CATCH"
+        },
+        {
+          "type": "h3",
+          "text": "RAISERROR vs THROW 对比"
+        },
+        {
+          "type": "code",
+          "text": "特性 | RAISERROR | THROW\n引入版本 | SQL Server 2005 | SQL Server 2012\n严重级别 | 可自定义（0-25） | 固定为 16\n错误号 | 50000（字符串消息）或自定义 | 必须 >= 50000\n格式化 | 支持 %s %d 占位符 | 不支持占位符\nCATCH 中重抛 | 需手动传递错误信息 | THROW; 一行搞定\n终止批处理 | severity >= 11 才进入 CATCH | 始终进入 CATCH\nSET XACT_ABORT | 不自动设置 | 自动设为 ON（隐含）"
+        },
+        {
+          "type": "h3",
+          "text": "三、FORMATMESSAGE 完整详解 重点"
+        },
+        {
+          "type": "info",
+          "text": "FORMATMESSAGE 函数用于根据消息模板和参数构造格式化的字符串消息。它支持两种使用方式：   使用 sys.messages 中预定义的消息（通过 msg_id 引用）   使用内联消息字符串（SQL Server 2016+ 直接传入字符串模板） 核心价值：FORMATMESSAGE 解决了 RAISERROR 不支持将格式化消息赋值给变量的限制。RAISERROR 直接抛出错误，而 FORMATMESSAGE 返回一个字符串，可以存储、记录、传递。"
+        },
+        {
+          "type": "h3",
+          "text": "FORMATMESSAGE 语法"
+        },
+        {
+          "type": "code",
+          "text": "-- 语法1：使用 sys.messages 中的预定义消息\nFORMATMESSAGE(msg_id, [arg1, arg2, ...])\n\n-- 语法2：使用内联字符串（SQL Server 2016+）\nFORMATMESSAGE('template string', [arg1, arg2, ...])\n\n-- 返回类型：NVARCHAR"
+        },
+        {
+          "type": "h3",
+          "text": "FORMATMESSAGE 占位符"
+        },
+        {
+          "type": "p",
+          "text": "FORMATMESSAGE 使用与 C 语言 printf 兼容的占位符（与 RAISERROR 相同）："
+        },
+        {
+          "type": "code",
+          "text": "占位符 | 含义 | 对应参数类型 | 示例\n%s | 字符串 | 字符串类型（VARCHAR/NVARCHAR/CHAR） | FORMATMESSAGE('用户%s', @name)\n%d | 有符号整数 | 整数类型（INT/BIGINT/SMALLINT 等） | FORMATMESSAGE('码%d', @code)\n%u | 无符号整数 | 非负整数 | 较少使用\n%ld | 长整数 | BIGINT | 大数值\n%f | 浮点数 | FLOAT/DECIMAL | FORMATMESSAGE('%.2f', @price)\n%x | 十六进制（小写） | 整数 | FORMATMESSAGE('0x%x', @hex)\n%X | 十六进制（大写） | 整数 | 同上，大写\n%o | 八进制 | 整数 | 较少使用\n%% | 输出 % 本身 | 无参数 | FORMATMESSAGE('100%%')"
+        },
+        {
+          "type": "h3",
+          "text": "FORMATMESSAGE 完整示例"
+        },
+        {
+          "type": "code",
+          "text": "-- 示例1：脚本中的实际用法\nDECLARE @机台总型号数 INT = 5;\nDECLARE @机台点模下限 INT = 3;\nDECLARE @msg VARCHAR(1000);\n\nSET @msg = FORMATMESSAGE(\n    '自动点模失败。机台当前有任务型号数%s大于下限%s，本次不点模。',\n    CAST(@机台总型号数 AS VARCHAR(20)),\n    CAST(@机台点模下限 AS VARCHAR(20))\n);\n-- @msg = '自动点模失败。机台当前有任务型号数5大于下限3，本次不点模。'\n\nRAISERROR(@msg, 16, 1);\n\n-- 示例2：使用 %d 占位符（直接传整数）\nDECLARE @msg2 NVARCHAR(500);\nSET @msg2 = FORMATMESSAGE(\n    '处理完成。成功 %d 条，失败 %d 条，总计 %d 条。',\n    @success_count, @fail_count, @total_count\n);\n\n-- 示例3：混合类型\nSET @msg = FORMATMESSAGE(\n    '用户 %s (ID:%d) 在 %s 执行了 %s 操作',\n    @user_name, @user_id,\n    CONVERT(VARCHAR(20), GETDATE(), 120),\n    @action\n);\n\n-- 示例4：使用 sys.messages 预定义消息\n-- 先创建消息（只需执行一次）\nEXEC sp_addmessage\n    @msgnum = 50001,\n    @severity = 16,\n    @msgtext = '机台 %s 的型号数 %d 超过下限 %d',\n    @lang = 'us_english';\n\n-- 然后使用 msg_id 引用\nSET @msg = FORMATMESSAGE(50001, @line_no, @count, @limit);\n\n-- 示例5：百分比和特殊字符\nSET @msg = FORMATMESSAGE('完成度: %d%%', 85);  -- '完成度: 85%'\n\n-- 示例6：浮点数精度控制\nSET @msg = FORMATMESSAGE('价格: %.2f 元', 99.999);  -- '价格: 100.00 元'"
+        },
+        {
+          "type": "warning",
+          "text": "FORMATMESSAGE 风险提示 风险提示   %s 参数必须为字符串类型：脚本中使用 CAST(@机台总型号数 AS VARCHAR(20)) 将 INT 转为 VARCHAR 后传给 %s。如果不转换直接传 INT 给 %s，会报错\"参数类型冲突\"。这是最常见的 FORMATMESSAGE 错误。替代方案是使用 %d 占位符直接传整数   参数数量必须匹配：占位符数量必须与参数数量一致。多出的参数被忽略，少了会报错   NULL 参数：如果参数为 NULL，%s 会输出空串，%d 会输出 0。这可能不是期望行为。应先用 ISNULL 处理   返回类型为 NVARCHAR：FORMATMESSAGE 返回 NVARCHAR，赋值给 VARCHAR 变量时如果包含 Unicode 字符可能丢失   内联字符串需要 SQL Server 2016+：SQL Server 2014 及以下不支持直接传字符串模板，必须先通过 sp_addmessage 创建消息再用 msg_id 引用   消息长度限制：sys.messages 中的消息文本最大 2047 字符。FORMATMESSAGE 返回值最大为 2047 字符（NVARCHAR）   % 转义：消息中的 % 需要用 %% 转义，否则会被解析为占位符   参数顺序：参数按位置匹配占位符，不能通过名称引用。建议使用清晰的占位符顺序"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 FORMATMESSAGE + RAISERROR 动态错误消息模式 -- 步骤1：构造格式化消息 DECLARE @msg NVARCHAR(1000); SET @msg = FORMATMESSAGE(     '操作失败。原因：%s，值1：%s，值2：%s',     ISNULL(@reason, '未知'),     CAST(ISNULL(@val1, 0) AS VARCHAR(20)),     CAST(ISNULL(@val2, 0) AS VARCHAR(20)) ); -- 步骤2：抛出错误 RAISERROR(@msg, 16, 1); -- 或者使用 THROW（错误号 >= 50000） THROW 50001, '静态错误消息', 1;"
+        }
+      ]
+    },
+    {
+      "id": "s17",
+      "title": "17EXEC 与动态 SQL",
+      "badge": "17",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "动态 SQL是在运行时构造和执行的 SQL 语句。当表名、列名、查询条件等需要在运行时确定时，必须使用动态 SQL。 两种执行方式：   EXEC()：简单但不支持参数化，存在 SQL 注入风险   sp_executesql：支持参数化，可重用执行计划，安全"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- 跨数据库调用存储过程\nEXEC zgRdp.dbo.p_sys_call_make_msg\n    @MsgTile = @remark1,\n    @Body = @rem_20,\n    ...;"
+        },
+        {
+          "type": "h3",
+          "text": "通用完整语法 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- 1. EXEC 执行存储过程\nEXEC dbo.p_procedure @param = 1;\nEXEC zgRdp.dbo.p_procedure @param = 1;  -- 跨数据库\n\n-- 2. EXEC() 执行动态 SQL 字符串\nDECLARE @sql VARCHAR(1000);\nSET @sql = 'SELECT * FROM ' + @table_name;\nEXEC(@sql);\n\n-- 3. sp_executesql（推荐：支持参数化）\nDECLARE @sql NVARCHAR(1000);\nSET @sql = N'SELECT * FROM users WHERE id = @id';\nEXEC sp_executesql\n    @sql,\n    N'@id INT',\n    @id = 123;\n\n-- 4. sp_executesql 带输出参数\nDECLARE @count INT;\nEXEC sp_executesql\n    N'SELECT @cnt = COUNT(*) FROM users WHERE status = @st',\n    N'@st VARCHAR(10), @cnt INT OUTPUT',\n    @st = 'A',\n    @cnt = @count OUTPUT;\n\n-- 5. 动态表名查询\nDECLARE @table NVARCHAR(128) = 'orders_202608';\nDECLARE @sql NVARCHAR(1000);\nSET @sql = FORMATMESSAGE('SELECT * FROM %s WHERE date >= @dt', @table);\nEXEC sp_executesql @sql, N'@dt DATE', @dt = '2026-08-01';"
+        },
+        {
+          "type": "h3",
+          "text": "EXEC vs sp_executesql 对比"
+        },
+        {
+          "type": "code",
+          "text": "特性 | EXEC() | sp_executesql\n参数化 | 不支持 | 支持\nSQL 注入防护 | 无 | 有（参数化）\n执行计划重用 | 差（每次编译） | 优（参数化可重用）\n输出参数 | 不支持 | 支持\n字符串类型 | VARCHAR 即可 | 必须 NVARCHAR\n推荐度 | 不推荐 | 推荐"
+        },
+        {
+          "type": "warning",
+          "text": "动态 SQL 风险提示：   SQL 注入：直接拼接用户输入到 SQL 字符串中是最大的安全风险。永远不要 'SELECT * FROM ' + @user_input。使用 sp_executesql 参数化或 QUOTENAME() 处理标识符   QUOTENAME 保护标识符：QUOTENAME(@table_name) 会将表名包裹在 [] 中，防止注入。如 QUOTENAME('users; DROP TABLE orders') → [users; DROP TABLE orders]（安全的表名引用）   作用域问题：动态 SQL 在单独的作用域中执行。动态 SQL 中创建的临时表、变量在动态 SQL 执行后不可见。反之亦然   NVARCHAR 要求：sp_executesql 的 SQL 字符串必须是 NVARCHAR。VARCHAR 会报错   长度限制：EXEC() 和 sp_executesql 的字符串参数有长度限制（NVARCHAR(MAX) 可突破）   权限上下文：动态 SQL 默认在调用者权限下执行。如需在所有者权限下执行，使用 EXECUTE AS 或签名存储过程"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 安全的动态 SQL 模板 -- 安全的动态表名查询 DECLARE @table_name NVARCHAR(128) = 'orders'; DECLARE @sql NVARCHAR(1000); -- 使用 QUOTENAME 保护表名 SET @sql = N'SELECT * FROM ' + QUOTENAME(@table_name) +            N' WHERE status = @st AND date >= @dt'; -- 使用 sp_executesql 参数化 EXEC sp_executesql     @sql,     N'@st VARCHAR(10), @dt DATE',     @st = 'A',     @dt = '2026-08-01';"
+        }
+      ]
+    },
+    {
+      "id": "s18",
+      "title": "18WITH (NOLOCK) 与隔离级别",
+      "badge": "18",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "WITH (NOLOCK) 是表级提示，相当于 READ UNCOMMITTED 隔离级别。它允许读取未提交的数据（脏读），但不会对被读取的表加共享锁，因此不会阻塞其他事务的写操作。 事务隔离级别（从低到高）： 隔离级别脏读不可重复读幻读说明 READ UNCOMMITTED可能可能可能最低隔离，等同于 NOLOCK READ COMMITTED（默认）不可能可能可能只读取已提交数据 REPEATABLE READ不可能不可能可能锁定读取行直到事务结束 SNAPSHOT不可能不可能不可能行版本控制，读取快照 SERIALIZABLE不可能不可能不可能最高隔离，锁定范围"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- 所有表读取都使用 WITH (NOLOCK)\nSELECT a.line_no, a.eqm_no\nFROM zgDmp.dbo.tb_bas_eqm_line a WITH (NOLOCK)\nWHERE a.status = 'A';\n\nSELECT @recipient = STRING_AGG(b.emp_no, ',')\nFROM tb_mes_msg_type a WITH (NOLOCK)\n    LEFT JOIN tb_mes_msg_type_users b WITH (NOLOCK)\n        ON a.msg_type_code = b.msg_type_code;"
+        },
+        {
+          "type": "h3",
+          "text": "通用完整语法 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- 1. 表级 NOLOCK 提示\nSELECT * FROM orders WITH (NOLOCK);\n\n-- 2. 多表 NOLOCK\nSELECT *\nFROM orders a WITH (NOLOCK)\n    INNER JOIN customers b WITH (NOLOCK) ON a.cust_id = b.id;\n\n-- 3. 会话级隔离级别设置\nSET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;\nSELECT * FROM orders;  -- 无需每表加 NOLOCK\nSET TRANSACTION ISOLATION LEVEL READ COMMITTED;  -- 恢复默认\n\n-- 4. 其他常用表提示\nSELECT * FROM orders WITH (READPAST);      -- 跳过被锁的行\nSELECT * FROM orders WITH (UPDLOCK);      -- 读取时加更新锁\nSELECT * FROM orders WITH (ROWLOCK);      -- 使用行级锁\nSELECT * FROM orders WITH (NOLOCK, READPAST); -- 组合提示"
+        },
+        {
+          "type": "warning",
+          "text": "NOLOCK 风险提示 风险提示   脏读：NOLOCK 会读取未提交的数据。如果另一个事务正在修改但尚未提交（可能回滚），你读到的是\"脏数据\"。对财务、库存等关键数据，绝对不能使用 NOLOCK   不可重复读：同一查询两次执行结果可能不同，因为其他事务在期间修改了数据   幻读：行数可能变化，因为其他事务插入/删除了行   读取不一致：在大表扫描中，如果数据页被其他事务重新组织，可能读到重复行或丢失行。这是 NOLOCK 最危险的副作用   适用场景：NOLOCK 适合报表查询、数据分析等对数据精度要求不高的场景。生产交易系统应使用 READ COMMITTED 或 SNAPSHOT   更好的替代方案：READ_COMMITTED_SNAPSHOT 数据库选项启用后，READ COMMITTED 使用行版本控制（类似 SNAPSHOT），读取不阻塞写入，也不脏读。这是比 NOLOCK 更安全的选择：ALTER DATABASE db SET READ_COMMITTED_SNAPSHOT ON   脚本中的使用：自动点模脚本在所有表读取时使用 NOLOCK，这是 MES 系统的常见做法——为了减少锁争用，接受脏读风险。但在更新临时表时不需要 NOLOCK（临时表是会话私有的）"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 NOLOCK 标准使用模式 -- 每个源表都加 WITH (NOLOCK) SELECT a.col1, b.col2 FROM table_a a WITH (NOLOCK)     INNER JOIN table_b b WITH (NOLOCK)         ON a.id = b.a_id     LEFT JOIN table_c c WITH (NOLOCK)         ON a.code = c.code WHERE a.status = 'A'; -- 或者设置会话级隔离级别（等价于所有表加 NOLOCK） SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
+        }
+      ]
+    },
+    {
+      "id": "s19",
+      "title": "19跨数据库查询与同义词",
+      "badge": "19",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "SQL Server 支持使用三部分命名（three-part name）跨数据库查询：[数据库].[架构].[对象]。也可以使用同义词（Synonym）为跨数据库对象创建别名，简化引用并提高可维护性。"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- 跨数据库查询：zgDmp 数据库\nSELECT a.*\nFROM zgDmp.dbo.tb_bas_eqm_line a WITH (NOLOCK)\nWHERE a.status = 'A';\n\n-- 跨数据库调用存储过程：zgRdp 数据库\nEXEC zgRdp.dbo.p_sys_call_make_msg\n    @MsgTile = @remark1,\n    @Body = @rem_20,\n    ...;"
+        },
+        {
+          "type": "h3",
+          "text": "通用完整语法 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- 1. 三部分命名（同实例跨数据库）\nSELECT * FROM DatabaseName.dbo.TableName;\nEXEC DatabaseName.dbo.StoredProcedureName @param = 1;\n\n-- 2. 四部分命名（跨实例/链接服务器）\nSELECT * FROM [ServerName].DatabaseName.dbo.TableName;\n\n-- 3. 创建同义词\nCREATE SYNONYM dbo.eqm_line\nFOR zgDmp.dbo.tb_bas_eqm_line;\n\n-- 4. 使用同义词（简化引用）\nSELECT * FROM dbo.eqm_line WITH (NOLOCK);\n\n-- 5. 删除同义词\nDROP SYNONYM IF EXISTS dbo.eqm_line;\n\n-- 6. 创建链接服务器\nEXEC sp_addlinkedserver\n    @server = 'RemoteServer',\n    @srvproduct = '',\n    @provider = 'SQLNCLI',\n    @datasrc = '192.168.1.100';\n\n-- 7. 查询链接服务器\nSELECT * FROM [RemoteServer].dbName.dbo.tableName;\n\n-- 8. 使用 OPENQUERY（在远程执行查询）\nSELECT * FROM OPENQUERY([RemoteServer], 'SELECT * FROM tableName');"
+        },
+        {
+          "type": "h3",
+          "text": "命名层级说明"
+        },
+        {
+          "type": "code",
+          "text": "层级 | 格式 | 说明\n一部分 | TableName | 当前数据库当前架构\n两部分 | dbo.TableName | 当前数据库指定架构\n三部分 | DB.dbo.TableName | 同实例跨数据库\n四部分 | Server.DB.dbo.TableName | 跨实例（链接服务器）"
+        },
+        {
+          "type": "warning",
+          "text": "跨数据库查询风险提示：   权限要求：跨数据库查询需要在目标数据库中有相应权限。可通过跨数据库链（DB chaining）或模拟（Impersonation）管理   性能影响：跨数据库查询可能产生额外的锁和资源开销。特别是链接服务器查询，网络延迟是主要瓶颈   同义词优势：使用同义词后，如果目标数据库改名或迁移，只需修改同义词定义，无需修改所有引用代码   链接服务器性能：链接服务器查询可能将大量数据拉到本地处理。使用 OPENQUERY 让查询在远程执行，只返回结果   分布式事务：跨实例操作涉及分布式事务（MSDTC），配置复杂且性能较差。尽量在单实例内完成   数据库迁移：大量跨数据库引用会增加数据库迁移难度。建议使用同义词解耦"
+        }
+      ]
+    },
+    {
+      "id": "s20",
+      "title": "20系统函数与全局变量",
+      "badge": "20",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "SQL Server 提供大量系统函数和全局变量（以 @@ 开头），用于获取系统状态、操作结果等信息。"
+        },
+        {
+          "type": "h3",
+          "text": "脚本中使用的全局变量"
+        },
+        {
+          "type": "code",
+          "text": "@@TRANCOUNT      -- 当前活动事务数\n@@FETCH_STATUS    -- 上一次 FETCH 的状态\n@@ROWCOUNT        -- 上一次语句影响的行数"
+        },
+        {
+          "type": "h3",
+          "text": "全局变量完整列表 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "全局变量 | 说明 | 示例返回\n@@ROWCOUNT | 上一条语句影响的行数 | 42\n@@ERROR | 上一条语句的错误号（0=成功） | 0 或 547\n@@TRANCOUNT | 当前连接的活动事务数 | 0/1/2\n@@FETCH_STATUS | 游标最后一次 FETCH 的状态 | 0/-1/-2\n@@IDENTITY | 当前会话最后插入的 IDENTITY 值 | 12345\n@@SCOPE_IDENTITY() | 当前作用域最后插入的 IDENTITY 值 | 12345\n@@SPID | 当前会话的进程ID | 53\n@@SERVERNAME | 服务器名称 | 'PROD-SQL-01'\n@@SERVICENAME | SQL Server 服务名 | 'MSSQLSERVER'\n@@VERSION | SQL Server 版本信息 | 'Microsoft SQL Server 2019...'\n@@LANGUAGE | 当前语言名称 | 'us_english'\n@@LANGID | 当前语言ID | 0\n@@DATEFIRST | 每周第一天（1=周一, 7=周日） | 7\n@@LOCK_TIMEOUT | 锁超时设置（毫秒） | -1（无限）\n@@MAX_CONNECTIONS | 最大并发连接数 | 32767\n@@MAX_PRECISION | DECIMAL 最大精度 | 38\n@@NESTLEVEL | 当前存储过程嵌套层级 | 0/1/2\n@@OPTIONS | 当前 SET 选项的位掩码 | 5496\n@@REMSERVER | 远程服务器名（存储过程调用时） | NULL\n@@TEXTSIZE | TEXT/IMAGE 返回最大字节数 | 2147483647\n@@TRANCOUNT | 同 @@TRANCOUNT | 0/1\n@@PROCID | 当前存储过程的对象ID | 1234567\n@@MICROSOFTVERSION | 内部版本号 | ..."
+        },
+        {
+          "type": "h3",
+          "text": "常用系统函数完整列表"
+        },
+        {
+          "type": "code",
+          "text": "函数 | 说明 | 示例\nNEWID() | 生成唯一 GUID | NEWID() → 'A1B2C3D4-...'\nNEWSEQUENTIALID() | 生成顺序 GUID（性能更好） | 默认约束中使用\nOBJECT_ID('name') | 获取对象ID | OBJECT_ID('tempdb..#temp')\nOBJECT_NAME(id) | 根据ID获取对象名 | OBJECT_NAME(@@PROCID)\nDB_NAME() | 当前数据库名 | DB_NAME() → 'zgDmp'\nDB_ID() | 当前数据库ID | DB_ID() → 5\nSCHEMA_NAME() | 当前架构名 | SCHEMA_NAME() → 'dbo'\nSCOPE_IDENTITY() | 当前作用域最后插入的IDENTITY | SCOPE_IDENTITY()\nIDENT_CURRENT('table') | 指定表最后的IDENTITY值 | IDENT_CURRENT('orders')\nCURSOR_STATUS('scope','name') | 游标状态 | CURSOR_STATUS('global','cur')\nHOST_NAME() | 客户端计算机名 | HOST_NAME()\nHOST_ID() | 客户端进程ID | HOST_ID()\nUSER_NAME() | 当前用户名 | USER_NAME() → 'dbo'\nSUSER_NAME() | 当前登录名 | SUSER_NAME() → 'sa'\nAPP_NAME() | 应用程序名 | APP_NAME() → 'Microsoft SQL Server Management Studio'\nGETANSINULL() | 默认是否允许NULL | GETANSINULL('dbname')\nPARSENAME('obj', part) | 解析对象名的各部分 | PARSENAME('db.dbo.tbl', 1) → 'tbl'\nSTATS_DATE(id, indid) | 统计信息最后更新时间 | STATS_DATE(OBJECT_ID('tbl'), 1)\n@@ROWCOUNT_BIG | 影响行数（BIGINT） | 大表操作后"
+        },
+        {
+          "type": "warning",
+          "text": "系统函数风险提示：   @@IDENTITY vs SCOPE_IDENTITY()：@@IDENTITY 返回当前会话任何作用域的最后 IDENTITY 值，包括触发器中插入的。SCOPE_IDENTITY() 只返回当前作用域的。生产环境必须使用 SCOPE_IDENTITY() 避免触发器干扰   @@ERROR 时效性：@@ERROR 只在每条语句执行后有效，下一条语句会覆盖它。如果要检查多个语句的错误，必须每条后立即检查。推荐使用 TRY/CATCH 替代   @@ROWCOUNT 被覆盖：@@ROWCOUNT 在任何语句后都会被重置。如果先 SELECT 再 IF，IF 语句会把 @@ROWCOUNT 重置为 0。应先保存到变量   OBJECT_ID 与临时表：OBJECT_ID('tempdb..#temp') 检查临时表是否存在。但不同会话的临时表名相同（如 #temp），OBJECT_ID 在 tempdb 中查找可能匹配到其他会话的同名表。实际上临时表在 tempdb 中有内部唯一名，OBJECT_ID 能正确匹配当前会话的"
+        }
+      ]
+    },
+    {
+      "id": "s21",
+      "title": "21类型转换 CAST / CONVERT / TRY_CONVERT",
+      "badge": "21",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "SQL Server 提供多种类型转换函数：   CAST：ANSI SQL 标准转换，语法简洁   CONVERT：T-SQL 扩展，支持日期/数字格式化   TRY_CAST / TRY_CONVERT：转换失败返回 NULL 而非报错   PARSE / TRY_PARSE：基于 .NET 的解析，支持区域性"
+        },
+        {
+          "type": "h3",
+          "text": "脚本原文"
+        },
+        {
+          "type": "code",
+          "text": "-- 将 INT 转为 VARCHAR 用于 FORMATMESSAGE 参数\nCAST(@机台总型号数 AS VARCHAR(20))\nCAST(@机台点模下限 AS VARCHAR(20))"
+        },
+        {
+          "type": "h3",
+          "text": "通用完整语法 通用扩展"
+        },
+        {
+          "type": "code",
+          "text": "-- 1. CAST：标准语法\nCAST(expression AS data_type [(length)])\n\n-- 2. CONVERT：T-SQL 扩展，支持样式码\nCONVERT(data_type [(length)], expression [, style])\n\n-- 3. TRY_CAST / TRY_CONVERT：转换失败返回 NULL\nTRY_CAST(expression AS data_type)\nTRY_CONVERT(data_type, expression [, style])\n\n-- 4. PARSE / TRY_PARSE：.NET 解析\nPARSE(string AS data_type [USING culture])\nTRY_PARSE(string AS data_type [USING culture])"
+        },
+        {
+          "type": "h3",
+          "text": "常用转换示例"
+        },
+        {
+          "type": "code",
+          "text": "-- 日期转字符串\nCAST(GETDATE() AS DATE)                        -- 2026-08-07\nCONVERT(VARCHAR(10), GETDATE(), 120)              -- '2026-08-07'\nCONVERT(VARCHAR(19), GETDATE(), 120)              -- '2026-08-07 14:30:15'\nCONVERT(VARCHAR(8), GETDATE(), 112)               -- '20260807'\nCONVERT(VARCHAR(10), GETDATE(), 101)              -- '08/07/2026'\n\n-- 字符串转日期\nCAST('2026-08-07' AS DATE)\nCONVERT(DATE, '20260807', 112)\n\n-- 数值转换\nCAST(123.456 AS INT)         -- 123（截断小数）\nCAST(123.456 AS DECIMAL(10,2))  -- 123.46（四舍五入）\nCAST('123' AS INT)           -- 123\nCAST(123 AS VARCHAR(10))       -- '123'\n\n-- TRY_CONVERT：安全转换\nTRY_CAST('abc' AS INT)       -- NULL（不报错）\nTRY_CONVERT(INT, 'abc')      -- NULL\nTRY_CONVERT(DATE, '2026-13-01')  -- NULL（无效日期）\n\n-- PARSE：区域性感知\nPARSE('08/07/2026' AS DATE USING 'en-US')  -- 2026-08-07\nPARSE('07/08/2026' AS DATE USING 'en-GB')  -- 2026-08-07"
+        },
+        {
+          "type": "h3",
+          "text": "CONVERT 日期样式码（常用）"
+        },
+        {
+          "type": "code",
+          "text": "样式码 | 格式 | 示例\n101 | mm/dd/yyyy | 08/07/2026\n103 | dd/mm/yyyy | 07/08/2026\n104 | dd.mm.yyyy | 07.08.2026\n112 | yyyymmdd | 20260807\n120 | yyyy-mm-dd hh:mi:ss | 2026-08-07 14:30:15\n121 | yyyy-mm-dd hh:mi:ss.mmm | 2026-08-07 14:30:15.123\n126 | yyyy-mm-ddThh:mi:ss.mmm（ISO 8601） | 2026-08-07T14:30:15.123\n127 | yyyy-mm-ddThh:mi:ss.mmmZ（UTC） | 2026-08-07T14:30:15.123Z"
+        },
+        {
+          "type": "warning",
+          "text": "类型转换风险提示：   转换失败报错：CAST('abc' AS INT) 会抛出错误，中断批处理。如果不确定转换是否成功，使用 TRY_CAST 或 TRY_CONVERT   隐式转换性能：SQL Server 会自动进行隐式类型转换（如 VARCHAR 列与 NVARCHAR 参数比较），但这可能导致索引失效（全表扫描）。确保比较双方类型一致   截断 vs 四舍五入：CAST(123.9 AS INT) = 123（截断），CAST(123.9 AS DECIMAL(10,0)) = 124（四舍五入）。行为不同，需注意   VARCHAR 长度省略：CAST(@v AS VARCHAR) 不指定长度时，默认长度为 30（在 CAST 中）或 1（在变量声明中）。始终显式指定长度   日期格式歧义：'06/07/2026' 在 US 英语中是 6月7日，在英式中是 7月6日。使用样式码 112（yyyymmdd）或 120 避免歧义   NVARCHAR 转换：处理 Unicode 字符串时使用 NVARCHAR/NCHAR，避免中文乱码   FORMATMESSAGE 参数类型：脚本中 CAST(@机台总型号数 AS VARCHAR(20)) 是为了将 INT 传给 FORMATMESSAGE 的 %s 占位符。也可以直接用 %d 占位符传 INT，但 %s + CAST 是更通用的模式"
+        },
+        {
+          "type": "tip",
+          "text": "固定写法 安全类型转换模式 -- 1. 安全字符串转数值（使用 TRY_CAST） DECLARE @val INT; SET @val = ISNULL(TRY_CAST(@input AS INT), 0); -- 2. 安全日期转换 DECLARE @date DATE; SET @date = ISNULL(TRY_CONVERT(DATE, @input, 120), GETDATE()); -- 3. FORMATMESSAGE 参数转换 FORMATMESSAGE(     '值: %s',     CAST(ISNULL(@num, 0) AS VARCHAR(20)) ) -- 4. 标准日期格式化 CONVERT(VARCHAR(19), GETDATE(), 120)  -- '2026-08-07 14:30:15'"
+        }
+      ]
+    },
+    {
+      "id": "s22",
+      "title": "附录: DEMO 模板",
+      "badge": "22",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "模板说明： 本模板从 p_mold_auto_apply_v4_bak 存储过程中抽象出 5 步标准结构，适用于大多数 SQL Server 批处理存储过程开发场景。模板内置了事务管理、错误处理、游标清理等最佳实践，可直接复制使用。"
+        },
+        {
+          "type": "h3",
+          "text": "五步结构概览"
+        },
+        {
+          "type": "code",
+          "text": "步骤 | 名称 | 核心职责 | 对应脚本元素\nStep 1 | 参数校验与前置检查 | 验证入参合法性、时间窗口限制、业务前置条件 | RAISERROR + IF\nStep 2 | 临时表构建 | 用 SELECT INTO 创建临时数据集，IF OBJECT_ID 判断防重复 | #temp + OBJECT_ID\nStep 3 | 更新计算 | UPDATE ... FROM ... JOIN 批量计算字段，窗口函数聚合 | UPDATE FROM JOIN\nStep 4 | 游标循环处理 | 逐行处理需要复杂逻辑的记录，DECLARE/Open/FETCH/WHILE/Close/Deallocate | CURSOR 全套\nStep 5 | 后处理与通知 | 清理临时表、发送通知、提交事务 | DROP TABLE + EXEC"
+        },
+        {
+          "type": "tip",
+          "text": "设计原则：   事务包裹：Step 2 ~ Step 4 包裹在 BEGIN TRANSACTION ... COMMIT 内   错误兜底：全部包在 BEGIN TRY ... BEGIN CATCH 中   游标安全：CATCH 块中检查 CURSOR_STATUS 并关闭/释放游标   临时表安全：创建前 IF OBJECT_ID 判断，结束后 DROP TABLE   NOLOCK 一致：所有表读取加 WITH (NOLOCK)   NULL 防御：所有可能为 NULL 的字段用 ISNULL 包裹"
+        },
+        {
+          "type": "h3",
+          "text": "完整 DEMO 模板代码"
+        },
+        {
+          "type": "code",
+          "text": "/* ================================================================\n   存储过程模板：5 步标准结构\n   基于 p_mold_auto_apply_v4_bak 抽象\n   适用场景：批量数据处理 + 逐行逻辑 + 错误通知\n   ================================================================ */\nCREATE PROCEDURE dbo.p_template_demo\n    @is_auto INT = 0        -- 0=人工触发, 1=自动触发\nAS\nBEGIN\n    SET NOCOUNT ON;\n\n    /* ================================================================\n       全局变量声明\n       ================================================================ */\n    DECLARE @err_msg VARCHAR(5000);\n    DECLARE @recipient VARCHAR(2000);\n    DECLARE @send_id VARCHAR(50) = NEWID();\n\n    /* ================================================================\n       BEGIN TRY + BEGIN TRANSACTION  (固定写法)\n       ================================================================ */\n    BEGIN TRY\n        BEGIN TRANSACTION;\n\n        /* ============================================================\n           Step 1: 参数校验与前置检查\n           ============================================================ */\n\n        /* 1.1 时间窗口校验 (仅人工触发时检查) */\n        IF @is_auto = 0\n        BEGIN\n            DECLARE @curr_hour INT = DATEPART(HOUR, GETDATE());\n            IF (@curr_hour BETWEEN 3 AND 6)\n               OR (@curr_hour BETWEEN 15 AND 18)\n            BEGIN\n                RAISERROR('3点-6点、15点-18点期间不允许人工触发!', 16, 1);\n            END\n        END\n\n        /* 1.2 业务前置条件检查 */\n        IF NOT EXISTS (\n            SELECT 1\n            FROM dbo.tb_config WITH (NOLOCK)\n            WHERE config_code = 'ENABLED'\n        )\n        BEGIN\n            RAISERROR('系统未启用，无法执行', 16, 1);\n        END\n\n        /* ============================================================\n           Step 2: 临时表构建\n           ============================================================ */\n\n        /* 2.1 安全删除旧临时表 (固定写法) */\n        IF OBJECT_ID('tempdb..#jt_data') IS NOT NULL\n            DROP TABLE #jt_data;\n\n        /* 2.2 SELECT INTO 创建临时表 */\n        SELECT\n            a.sheet_no,\n            a.eqm_code,\n            a.status,\n            ISNULL(a.priority, 0) AS priority,\n            ROW_NUMBER() OVER (PARTITION BY a.eqm_code ORDER BY a.create_time DESC) AS rn,\n            SUM(a.qty) OVER (PARTITION BY a.eqm_code) AS total_qty,\n            CAST(NULL AS VARCHAR(100)) AS result_msg\n        INTO #jt_data\n        FROM dbo.tb_main a WITH (NOLOCK)\n        WHERE a.status IN ('1', '2')\n          AND a.create_time >= DATEADD(HOUR, -5, GETDATE());\n\n        /* 2.3 创建索引加速后续 JOIN */\n        CREATE NONCLUSTERED INDEX ix_jt_data_eqm ON #jt_data(eqm_code);\n\n        /* ============================================================\n           Step 3: 更新计算 (UPDATE ... FROM ... JOIN)\n           ============================================================ */\n\n        /* 3.1 关联补充字段 */\n        UPDATE t\n        SET\n            t.eqm_name    = ISNULL(b.eqm_name, ''),\n            t.dept_name   = ISNULL(c.dept_name, '未分配'),\n            t.limit_value = ISNULL(d.limit_value, 0)\n        FROM #jt_data t\n            LEFT JOIN dbo.tb_eqm b WITH (NOLOCK)\n                ON t.eqm_code = b.eqm_code\n            LEFT JOIN zgDmp.dbo.tb_hr_employee c WITH (NOLOCK)\n                ON b.emp_no = c.emp_no\n            LEFT JOIN dbo.tb_config d WITH (NOLOCK)\n                ON d.config_code = t.eqm_code;\n\n        /* 3.2 CASE 表达式标记状态 */\n        UPDATE #jt_data\n        SET result_msg = CASE\n            WHEN total_qty > limit_value THEN '超限'\n            WHEN total_qty = 0 THEN '无数据'\n            ELSE '正常'\n        END;\n\n        /* ============================================================\n           Step 4: 游标循环处理\n           ============================================================ */\n\n        /* 4.1 游标变量声明 */\n        DECLARE\n            @cur_sheet_no VARCHAR(50),\n            @cur_eqm_code VARCHAR(50),\n            @cur_total    INT,\n            @cur_limit    INT;\n\n        /* 4.2 声明游标 */\n        DECLARE proc_cur CURSOR FOR\n        SELECT sheet_no, eqm_code, total_qty, limit_value\n        FROM #jt_data\n        WHERE rn = 1\n          AND result_msg = '超限';\n\n        /* 4.3 打开游标并取首行 */\n        OPEN proc_cur;\n        FETCH NEXT FROM proc_cur INTO\n            @cur_sheet_no, @cur_eqm_code, @cur_total, @cur_limit;\n\n        /* 4.4 循环处理 */\n        WHILE @@FETCH_STATUS = 0\n        BEGIN\n            /* 4.4.1 业务逻辑处理 */\n            IF @cur_total > @cur_limit\n            BEGIN\n                /* 使用 FORMATMESSAGE 生成错误消息 */\n                RAISERROR(\n                    FORMATMESSAGE(\n                        '处理失败。机台%s当前数量%d大于下限%d，跳过。',\n                        CAST(@cur_eqm_code AS VARCHAR(20)),\n                        CAST(@cur_total AS VARCHAR(20)),\n                        CAST(@cur_limit AS VARCHAR(20))\n                    ),\n                    16, 1\n                );\n\n                /* CONTINUE 跳过当前行 */\n                CONTINUE;\n            END\n\n            /* 4.4.2 更新业务表 */\n            UPDATE dbo.tb_main\n            SET status = '5',\n                update_time = GETDATE()\n            WHERE sheet_no = @cur_sheet_no;\n\n            /* 4.4.3 取下一行 (固定写法, 必须在循环末尾) */\n            FETCH NEXT FROM proc_cur INTO\n                @cur_sheet_no, @cur_eqm_code, @cur_total, @cur_limit;\n        END\n\n        /* 4.5 关闭并释放游标 (固定写法) */\n        CLOSE proc_cur;\n        DEALLOCATE proc_cur;\n\n        /* ============================================================\n           Step 5: 后处理与通知\n           ============================================================ */\n\n        /* 5.1 提交事务 */\n        COMMIT TRANSACTION;\n\n        /* 5.2 清理临时表 */\n        IF OBJECT_ID('tempdb..#jt_data') IS NOT NULL\n            DROP TABLE #jt_data;\n\n        /* 5.3 记录执行日志 */\n        INSERT INTO dbo.tb_proc_log(proc_name, execute_time, status)\n        VALUES('p_template_demo', GETDATE(), '成功');\n\n    END TRY\n    BEGIN CATCH\n        /* ============================================================\n           CATCH 块: 错误处理 6 步法 (固定写法, 必须与原脚本一致)\n           ============================================================ */\n\n        /* Step 1: 回滚事务 */\n        IF @@TRANCOUNT > 0\n            ROLLBACK TRANSACTION;\n\n        /* Step 2: 关闭游标 (如果仍然打开) */\n        IF CURSOR_STATUS('global', 'proc_cur') <> -3\n           OR CURSOR_STATUS('local', 'proc_cur') <> -3\n        BEGIN\n            CLOSE proc_cur;\n            DEALLOCATE proc_cur;\n        END;\n\n        /* Step 3: 调用系统错误记录过程 */\n        EXEC dbo.p_sys_raiserror;\n\n        /* Step 4: 声明变量并获取错误信息 */\n        DECLARE\n            @remark1   VARCHAR(2000),\n            @rem_20    VARCHAR(5000),\n            @body      VARCHAR(MAX);\n\n        SELECT @remark1 = '处理出错';\n        SELECT @body    = '处理出错';\n        SELECT @rem_20  = ERROR_MESSAGE();  -- 获取错误消息\n\n        /* Step 5: 查询通知接收人 (STRING_AGG) */\n        SELECT @recipient = STRING_AGG(b.emp_no, ',')\n        FROM dbo.tb_mes_msg_type a\n            LEFT JOIN dbo.tb_mes_msg_type_users b\n                ON a.msg_type_code = b.msg_type_code\n        WHERE a.msg_type_code = 'MJTBCC';\n\n        /* Step 6: 发送多通道通知 (微信/PC/Android) */\n        EXEC zgRdp.dbo.p_sys_call_make_msg\n            @MsgTile      = @remark1,\n            @MsgType       = 0,\n            @Body          = @rem_20,         -- 使用 ERROR_MESSAGE() 结果\n            @SheetNo       = '',\n            @LevelId       = 0,\n            @WeixinPush    = 1,\n            @PcPush        = 1,\n            @AndroidPush   = 1,\n            @SendUser      = '',\n            @RecUsers      = @recipient,\n            @RecRole       = '',\n            @RecSql        = '',\n            @MenuId        = '',\n            @temp_id       = 'DxOjZaab_bWL6mwzjVLq5bWXnFycR35MH2DwQAgJimQ',\n            @define1       = '',\n            @define2       = '',\n            @define3       = '',\n            @define4       = '',\n            @define5       = '',\n            @extend_field  = '';\n    END CATCH;\nEND"
+        },
+        {
+          "type": "h3",
+          "text": "模板对照表：脚本原文 vs DEMO 模板"
+        },
+        {
+          "type": "code",
+          "text": "步骤 | p_mold_auto_apply_v4_bak 原文 | DEMO 模板 | 核心知识点\nStep 1 | RAISERROR 时间段检查 + @is_auto 参数判断 | RAISERROR 时间窗口 + EXISTS 前置条件 | IF / RAISERROR / DATEPART / BETWEEN\nStep 2 | #jt_moldinfo + IF OBJECT_ID + SELECT INTO + 窗口函数 | #jt_data + IF OBJECT_ID + SELECT INTO + ROW_NUMBER/SUM OVER | 临时表 / OBJECT_ID / SELECT INTO / 窗口函数\nStep 3 | UPDATE #jt_moldinfo SET ... FROM ... LEFT JOIN (多表关联) | UPDATE #jt_data SET ... FROM ... LEFT JOIN (跨库 zgDmp) | UPDATE FROM JOIN / ISNULL / WITH(NOLOCK) / 跨库\nStep 4 | DECLARE auto_mod_cur + OPEN/FETCH/WHILE/CLOSE/DEALLOCATE | DECLARE proc_cur + 同样完整游标生命周期 | 游标全套 / FORMATMESSAGE / @@FETCH_STATUS / CONTINUE\nStep 5 | COMMIT + DROP TABLE + 日志 | COMMIT + DROP TABLE + 日志 | 事务提交 / 临时表清理\nCATCH | 6步法: ROLLBACK → 游标清理 → p_sys_raiserror → ERROR_MESSAGE → STRING_AGG → p_sys_call_make_msg | 完全一致的 6 步法结构 | @@TRANCOUNT / CURSOR_STATUS / ERROR_MESSAGE / STRING_AGG / 跨库EXEC"
+        },
+        {
+          "type": "h3",
+          "text": "使用建议"
+        },
+        {
+          "type": "tip",
+          "text": "最佳实践 何时使用此模板   批量 + 逐行混合处理：先用 SELECT INTO + UPDATE FROM JOIN 批量处理大部分数据，再用游标处理需要复杂逐行逻辑的记录   需要错误通知：CATCH 块内置了完整的多通道通知机制，适合生产环境关键存储过程   需要事务保护：多表更新操作需要原子性保证的场景"
+        },
+        {
+          "type": "warning",
+          "text": "风险提示 模板使用注意事项   游标性能：游标是性能杀手，能用集合操作（UPDATE FROM JOIN）完成的就不要用游标。仅在确实需要逐行条件判断和复杂分支时使用   事务范围：事务应尽量短，避免长时间锁定。不要在游标循环内开启新事务（嵌套事务在 SQL Server 中行为复杂）   NOLOCK 一致性：WITH(NOLOCK) 允许脏读，适合报表/查询场景。对需要事务一致性的写入前查询，不要使用 NOLOCK   临时表 vs 表变量：大数据量（>10000行）用临时表（有统计信息，优化器能优化）；小数据量用表变量（无统计信息，但开销小）   STRING_AGG 兼容性：SQL Server 2017+ 才支持 STRING_AGG。旧版本用 STUFF(... FOR XML PATH('')) 替代   FORMATMESSAGE 参数数限制：FORMATMESSAGE 最多支持 20 个参数占位符（%s / %d / %i 等）   CURSOR_STATUS 检查：CATCH 块中检查游标状态时，必须同时检查 'global' 和 'local' 两种作用域，否则可能遗漏   NEWID() 默认值：DECLARE @send_id VARCHAR(50) = NEWID() 是在声明时赋默认值，仅 SQL Server 2008+ 支持"
+        },
+        {
+          "type": "info",
+          "text": "总结： 本模板的核心价值在于将复杂存储过程拆分为清晰的 5 步结构，并在 CATCH 块中内置了生产级的错误处理和通知机制。通过固定 Step 1 ~ Step 5 + CATCH 6 步法的结构，可以确保存储过程的健壮性、可维护性和可追溯性。"
+        }
+      ]
+    }
+  ],
+  "desc": "基于点模脚本的 T-SQL 编程指南（21 主题 + DEMO）"
+}
