@@ -16,17 +16,78 @@
     </div>
   </header>
   <div class="search-box" id="search-box">
-    <input class="search-input" id="search-input" placeholder="搜索菜单标题或简介…" oninput="filterMenu(this.value)" />
+    <input class="search-input" id="search-input" placeholder="搜索当前栏目…" oninput="filterMenu(this.value)" />
   </div>
   <div class="container">
     <div class="intro-card" id="site-intro">加载菜单中…</div>
+    <div class="cat-tabs" id="cat-tabs"></div>
     <div id="menu-list"></div>
-    <div id="menu-empty" class="intro-card hidden">没有匹配的笔记</div>
+    <div id="menu-empty" class="intro-card hidden">该栏目暂无笔记</div>
   </div>
   <div class="footer">GitHub Pages · H5 笔记</div>
   <script src="assets/reader.js"></script>
   <script>
     let menuItems = [];
+    let categories = [];
+    let activeCat = "";
+    const CAT_KEY = "notes-h5-active-cat";
+
+    function defaultCategories() {
+      return [
+        { id: "work", name: "工作", order: 1 },
+        { id: "study", name: "学习", order: 2 },
+        { id: "fun", name: "娱乐", order: 3 }
+      ];
+    }
+
+    function resolveCategories(menu) {
+      let cats = (menu.categories || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+      if (!cats.length) cats = defaultCategories();
+      return cats;
+    }
+
+    function switchCategory(id) {
+      activeCat = id;
+      localStorage.setItem(CAT_KEY, id);
+      renderTabs();
+      renderList();
+      const input = document.getElementById("search-input");
+      if (input) filterMenu(input.value || "");
+    }
+
+    function renderTabs() {
+      const box = document.getElementById("cat-tabs");
+      if (!box) return;
+      box.innerHTML = categories.map((c) => {
+        const count = menuItems.filter((x) => (x.category || categories[0].id) === c.id).length;
+        return `<button type="button" class="cat-tab ${c.id === activeCat ? "active" : ""}" onclick="switchCategory('${c.id}')">${c.name}<span class="cat-count">${count}</span></button>`;
+      }).join("");
+    }
+
+    function renderList() {
+      const list = document.getElementById("menu-list");
+      const filtered = menuItems.filter((x) => (x.category || (categories[0] && categories[0].id)) === activeCat);
+      if (!filtered.length) {
+        list.innerHTML = "";
+        const empty = document.getElementById("menu-empty");
+        empty.classList.remove("hidden");
+        empty.textContent = "该栏目暂无笔记";
+        return;
+      }
+      document.getElementById("menu-empty").classList.add("hidden");
+      list.innerHTML = filtered.map((it) => {
+        const search = [it.title, it.desc, it.id].filter(Boolean).join(" ");
+        const lock = it.private ? " 🔒" : "";
+        return `
+          <div class="menu-card post-card" data-search="${String(search).replace(/"/g, "&quot;")}">
+            <a href="post.html?id=${encodeURIComponent(it.id)}">
+              <div class="menu-title">${it.title || it.id}${lock}</div>
+              <div class="menu-desc">${it.desc || ""}</div>
+              <div class="menu-meta">${it.updated || ""}${it.private ? " · 私密" : ""}</div>
+            </a>
+          </div>`;
+      }).join("");
+    }
 
     window.filterMenu = function (q) {
       q = (q || "").trim().toLowerCase();
@@ -39,34 +100,34 @@
         if (ok) shown++;
       });
       const empty = document.getElementById("menu-empty");
-      if (empty) empty.classList.toggle("hidden", shown > 0 || !cards.length);
+      if (empty) {
+        const hasCards = cards.length > 0;
+        empty.classList.toggle("hidden", shown > 0 || !hasCards);
+        if (hasCards && shown === 0) empty.textContent = "没有匹配的笔记";
+        else if (!hasCards) empty.textContent = "该栏目暂无笔记";
+      }
     };
 
     async function boot() {
       try {
-        const menu = await loadJSON('content/menu.json');
-        document.getElementById('site-title').textContent = menu.siteTitle || '笔记内容站';
-        document.getElementById('site-intro').textContent = menu.siteIntro || '';
-        const list = document.getElementById('menu-list');
-        menuItems = (menu.items || []).filter(x => x.enabled !== false);
+        const menu = await loadJSON("content/menu.json");
+        document.getElementById("site-title").textContent = menu.siteTitle || "笔记内容站";
+        document.getElementById("site-intro").textContent = menu.siteIntro || "";
+        categories = resolveCategories(menu);
+        menuItems = (menu.items || []).filter((x) => x.enabled !== false);
+        const saved = localStorage.getItem(CAT_KEY);
+        activeCat = (saved && categories.some((c) => c.id === saved))
+          ? saved
+          : ((categories[0] && categories[0].id) || "study");
         if (!menuItems.length) {
-          list.innerHTML = '<div class="intro-card">还没有内容，请打开右上角管理后台发布。</div>';
+          document.getElementById("menu-list").innerHTML = '<div class="intro-card">还没有内容，请打开右上角管理后台发布。</div>';
+          document.getElementById("cat-tabs").innerHTML = "";
           return;
         }
-        list.innerHTML = menuItems.map(it => {
-          const search = [it.title, it.desc, it.id].filter(Boolean).join(' ');
-          const lock = it.private ? ' 🔒' : '';
-          return `
-          <div class="menu-card post-card" data-search="${String(search).replace(/"/g, '&quot;')}">
-            <a href="post.html?id=${encodeURIComponent(it.id)}">
-              <div class="menu-title">${it.title || it.id}${lock}</div>
-              <div class="menu-desc">${it.desc || ''}</div>
-              <div class="menu-meta">${it.updated || ''}${it.private ? ' · 私密' : ''}</div>
-            </a>
-          </div>`;
-        }).join('');
+        renderTabs();
+        renderList();
       } catch (e) {
-        document.getElementById('site-intro').textContent = '菜单加载失败：' + e.message;
+        document.getElementById("site-intro").textContent = "菜单加载失败：" + e.message;
       }
     }
     boot();
