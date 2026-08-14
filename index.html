@@ -55,12 +55,13 @@
         }
         list.innerHTML = menuItems.map(it => {
           const search = [it.title, it.desc, it.id].filter(Boolean).join(' ');
+          const lock = it.private ? ' 🔒' : '';
           return `
           <div class="menu-card post-card" data-search="${String(search).replace(/"/g, '&quot;')}">
             <a href="post.html?id=${encodeURIComponent(it.id)}">
-              <div class="menu-title">${it.title || it.id}</div>
+              <div class="menu-title">${it.title || it.id}${lock}</div>
               <div class="menu-desc">${it.desc || ''}</div>
-              <div class="menu-meta">${it.updated || ''}</div>
+              <div class="menu-meta">${it.updated || ''}${it.private ? ' · 私密' : ''}</div>
             </a>
           </div>`;
         }).join('');
