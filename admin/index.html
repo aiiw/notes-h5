@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>内容管理后台</title>
+<link rel="stylesheet" href="../assets/theme.css" />
+<style>
+body{padding-top:0}
+.admin-wrap{max-width:980px;margin:0 auto;padding:14px}
+.admin-grid{display:grid;grid-template-columns:240px 1fr;gap:12px}
+@media(max-width:800px){.admin-grid{grid-template-columns:1fr}}
+.panel{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:12px}
+.panel h2{font-size:15px;margin-bottom:10px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px}
+.field input,.field textarea,.field select{
+  width:100%;border:1px solid var(--border);background:var(--bg);color:var(--text);
+  border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit
+}
+.field textarea{min-height:90px;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.btn{padding:8px 12px}
+.btn-primary{background:var(--accent);color:var(--badge-text);border-color:var(--accent)}
+.btn-danger{border-color:var(--warning-border);color:var(--warning-border)}
+.list-item{padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer}
+.list-item.active{border-color:var(--accent)}
+.muted{color:var(--text-secondary);font-size:12px}
+.section-editor{border:1px dashed var(--border);border-radius:10px;padding:10px;margin-bottom:10px}
+.status{font-size:13px;margin-top:8px}
+.status.ok{color:var(--tip-border)}
+.status.err{color:var(--warning-border)}
+.login-card{max-width:480px;margin:40px auto}
+</style>
+</head>
+<body>
+<div class="admin-wrap">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <h1 style="font-size:18px">H5 内容管理</h1>
+    <div class="row">
+      <a class="btn" href="../index.html">查看站点</a>
+      <button class="btn" onclick="toggleTheme()">主题</button>
+      <button class="btn btn-danger" onclick="logout()">退出</button>
+    </div>
+  </div>
+
+  <div id="login-view" class="panel login-card">
+    <h2>连接 GitHub</h2>
+    <div class="field"><label>仓库 owner</label><input id="cfg-owner" value="aiiw" /></div>
+    <div class="field"><label>仓库名</label><input id="cfg-repo" value="notes-h5" /></div>
+    <div class="field"><label>分支</label><input id="cfg-branch" value="main" /></div>
+    <div class="field"><label>Personal Access Token（只存在本机浏览器）</label><input id="cfg-token" type="password" placeholder="ghp_..." autocomplete="off" /></div>
+    <button class="btn btn-primary" onclick="saveConfig()">进入后台</button>
+    <p class="muted" style="margin-top:10px">Token 需要 repo 权限。请勿把 Token 发到聊天或提交到 Git。</p>
+    <div id="login-status" class="status"></div>
+  </div>
+
+  <div id="app-view" class="hidden">
+    <div class="admin-grid">
+      <div class="panel">
+        <h2>文章菜单</h2>
+        <div id="post-list"></div>
+        <div class="row">
+          <button class="btn btn-primary" onclick="newPost()">新建文章</button>
+          <button class="btn" onclick="reloadAll()">刷新</button>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label>站点标题</label><input id="site-title" />
+        </div>
+        <div class="field"><label>站点简介</label><textarea id="site-intro"></textarea></div>
+        <button class="btn" onclick="saveMenuOnly()">只保存菜单/站点信息</button>
+      </div>
+      <div class="panel">
+        <h2>编辑文章</h2>
+        <div class="field"><label>ID（英文/数字/短横线，发布后不建议改）</label><input id="post-id" /></div>
+        <div class="field"><label>标题</label><input id="post-title" /></div>
+        <div class="field"><label>菜单简介</label><input id="post-desc" /></div>
+        <div class="field"><label>文首说明</label><textarea id="post-intro"></textarea></div>
+        <div class="field"><label>是否显示在菜单</label>
+          <select id="post-enabled"><option value="true">显示</option><option value="false">隐藏</option></select>
+        </div>
+        <h2>折叠章节</h2>
+        <div id="sections"></div>
+        <div class="row">
+          <button class="btn" onclick="addSection()">加一节</button>
+          <button class="btn btn-primary" onclick="savePost()">保存文章到 GitHub</button>
+          <button class="btn btn-danger" onclick="deletePost()">删除文章</button>
+        </div>
+        <div id="save-status" class="status"></div>
+        <p class="muted">每个章节 = 一页可折叠卡片。块类型：p / h3 / code / tip / warning / info / ul</p>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="../assets/reader.js"></script>
+<script src="./admin.js"></script>
+</body>
+</html>
