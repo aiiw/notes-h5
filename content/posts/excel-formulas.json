@@ -2,10 +2,10 @@
   "id": "excel-formulas",
   "title": "Excel 高效公式速查",
   "intro": "从参考站迁移的可折叠笔记骨架，可在管理后台继续追加章节。",
-  "updated": "2026-08-14T02:17:24Z",
+  "updated": "2026-08-14T03:02:15.546Z",
   "sections": [
     {
-      "id": "map",
+      "id": "s1",
       "title": "MAP — 逐元素变换",
       "badge": "1",
       "blocks": [
@@ -28,7 +28,7 @@
       ]
     },
     {
-      "id": "scan",
+      "id": "s2",
       "title": "SCAN — 逐步累积",
       "badge": "2",
       "blocks": [
@@ -47,7 +47,7 @@
       ]
     },
     {
-      "id": "xlookup",
+      "id": "s3",
       "title": "XLOOKUP 速查",
       "badge": "3",
       "blocks": [
