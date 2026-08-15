@@ -32,8 +32,9 @@
       "id": "excel-formulas",
       "title": "Excel 高效公式速查",
       "desc": "动态数组 / LAMBDA 常用写法（折叠阅读）",
-      "updated": "2026-08-14",
+      "updated": "2026-08-15",
       "enabled": true,
+      "private": true,
       "category": "study",
       "order": 2
     },
