@@ -1,0 +1,588 @@
+{
+  "id": "mold-lifecycle-tables",
+  "title": "模具全流程表清单",
+  "intro": "点模 → 下架 → 签收 → 加热 → 上机 → 发煲 → 判回仓 → 修模 → 返修 → 氮化。主档 tb_bas_mold 与轨迹 tb_mod_stock_list 贯穿全程。",
+  "updated": "2026-08-15T09:05:56.000Z",
+  "private": false,
+  "sections": [
+    {
+      "id": "s1",
+      "title": "读写规律",
+      "badge": "1",
+      "blocks": [
+        {
+          "type": "info",
+          "text": "业务单据写各阶段表；同时回写 tb_bas_mold 的 status / 库位 / 机台，并往 tb_mod_stock_list 追加一条状态轨迹。"
+        },
+        {
+          "type": "h3",
+          "text": "贯穿全程"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_bas_mold：模具主档，全流程回写状态、库位、机台",
+            "zgMes.dbo.v_bas_mold：主档扩展视图，可申领判断入口",
+            "zgMes.dbo.tb_mod_stock_list：库存状态轨迹，每次变更写一条",
+            "zgMes.dbo.tb_mold_reason_list：下架 / 卸模 / 返修等原因字典",
+            "zgMes.dbo.tb_mold_status_mapping：状态码到步骤映射",
+            "zgMes.dbo.tb_mold_status_result：产线 x 型号状态快照（看板、自动点模）",
+            "zgDmp.dbo.tb_bas_eqm_line：产线 / 机台",
+            "zgDmp.dbo.tb_prdt_crossprdt_info：跨档型号",
+            "zgDmp.dbo.tb_bas_dict_detial：库存状态等字典"
+          ]
+        },
+        {
+          "type": "tip",
+          "text": "提示：下面每一节对应一个现场环节。核心表写在最前面，其余是单据、明细、中间表、配置。"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "title": "第一种：点模",
+      "badge": "2",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "按派工型号和产线，找出可申领模具并生成申领单。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mes_dispath_apply：点模 / 申领单，关联派工、机台、下架人、签收人。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mes_dispath_apply：点模 / 申领单（核心）",
+            "zgMes.dbo.tb_mes_dispath：MES 派工单，点模按派工型号 / 产线取模",
+            "zgMes.dbo.tb_mold_flow_apply：流转申领单头",
+            "zgMes.dbo.tb_mold_flow_apply_list：流转申领明细",
+            "zgMes.dbo.tb_mold_apply_register：点模登记 / 备案",
+            "zgMes.dbo.tb_mold_proline_isapply：产线是否允许点模",
+            "zgMes.dbo.tb_mold_apply_ord1：补模 / 加工申请单头",
+            "zgMes.dbo.tb_mold_apply_ord2：模具申请单（类型2）",
+            "zgMes.dbo.tb_mes_dispath_record：派工记录",
+            "zgMes.dbo.tb_mes_dispath_lock_task：派工锁定任务",
+            "zgMes.dbo.tb_mold_mold_OrderApplyType：申领类型字典",
+            "zgMes.dbo.tb_mold_OrderApplyType_Group：申领类型分组",
+            "zgMes.dbo.tb_mold_devapplymold_CountStd：机台点模数量标准"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "title": "第二种：下架",
+      "badge": "3",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "按申领单从仓库 / 立库把模具下架出库。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mold_flow_dow / tb_mold_flow_dow_list：下架单头 / 明细，关联申领单、库位、签收标志。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mold_flow_dow：下架单头",
+            "zgMes.dbo.tb_mold_flow_dow_list：下架明细（核心）",
+            "zgMes.dbo.tb_mold_flow_dow_list_middle：PDA 下架扫描缓冲",
+            "zgMes.dbo.tb_mold_takeout：模具取出 / 领出单头",
+            "zgMes.dbo.tb_mold_takeout_detail：取出明细",
+            "zgMes.dbo.tb_mod_wh_out_apply：仓库出库申请单头",
+            "zgMes.dbo.tb_mod_wh_out_apply_detail：仓库出库申请明细",
+            "zgMes.dbo.tb_mold_lk_outbound_log：立库出库日志",
+            "zgMes.dbo.tb_mold_lk_call_container_out：立库呼叫容器出库",
+            "zgMes.dbo.tb_mold_lk_call_container_out_detail：立库出库容器明细",
+            "zgMes.dbo.tb_mold_change_location：库位变更单头",
+            "zgMes.dbo.tb_mold_change_location_detail：库位变更明细"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "title": "第三种：签收",
+      "badge": "4",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "机台侧确认模具已送达。签收既有独立表，也会回写申领单和下架明细。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mold_signin：模具签收记录。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mold_signin：签收记录（核心）",
+            "zgMes.dbo.tb_mold_returnmold_receipt_middle：回模签收中间表",
+            "zgMes.dbo.tb_mold_wxemp_sign_inline：外协员工在线签收",
+            "zgMes.dbo.tb_mes_dispath_apply 的 out_user / out_time：申领单上同时写签收人、签收时间",
+            "zgMes.dbo.tb_mold_flow_dow_list 的 is_sign / sign_user：下架明细上同时写签收标志"
+          ]
+        },
+        {
+          "type": "tip",
+          "text": "提示：查签收时，申领单和下架明细上也有签收字段，建议一并核对。"
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "title": "第四种：加热",
+      "badge": "5",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "模具入炉加热，记录炉膛、班组、条码、工作机台。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mold_heat / tb_mold_heat_detail：加热单头 / 明细。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mold_heat：加热单头（炉膛、班组、入炉 / 出炉）",
+            "zgMes.dbo.tb_mold_heat_detail：加热明细（条码、工作机台）",
+            "zgMes.dbo.tb_mold_heat_middle：加热过程中间表",
+            "zgMes.dbo.tb_mold_heat_sncode_middle：加热条码扫描中间表"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "title": "第五种：上机",
+      "badge": "6",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "模具上机 / 下机、用棒、记工、考核。点模取「上次机台」也读这里。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mes_mold_use：上机 / 下机记录（时间、合格、记工）。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mes_mold_use：上机 / 下机（核心）",
+            "zgMes.dbo.tb_mes_mold_use_jz：上机记账 / 旧系统同步",
+            "zgMes.dbo.v_mold_use_all：新旧系统合并的上机全量，点模取上次机台",
+            "zgMes.dbo.v_mold_up_rec：非试模上机考核视图",
+            "zgMes.dbo.tb_mes_mold_rtn：退机 / 回机",
+            "zgMes.dbo.tb_mes_alrod_use：用棒 / 卸模原因",
+            "zgMes.dbo.tb_mes_alrod_use_jz：用棒记账",
+            "zgMes.dbo.tb_mes_station_record_jy：挤压工序记工（产量来源）",
+            "zgMes.dbo.tb_mod_station_record：模具工序报工",
+            "zgMes.dbo.tb_mold_jy_task_jz：挤压任务记账",
+            "zgMes.dbo.tb_mold_pause_detail：上机暂停明细",
+            "zgMes.dbo.tb_mold_onboardplan：上机计划",
+            "zgMes.dbo.v_mold_wait_jy_num：待挤压任务数"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s7",
+      "title": "第六种：发煲",
+      "badge": "7",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "上机后煲模，也可转外协或转修模。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mold_cook / tb_mold_cook_detail：煲模单头 / 明细。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mold_cook：煲模单头（槽位、机台、班组）",
+            "zgMes.dbo.tb_mold_cook_detail：煲模明细（模具条码）",
+            "zgMes.dbo.tb_mold_cooktowx：煲模转外协",
+            "zgMes.dbo.tb_mold_cook_to_repair：煲模转修模"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s8",
+      "title": "第七种：判回仓",
+      "badge": "8",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "判定模具是否回仓，含装煲扫描、入库、换产线。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mold_judge_returnwarehouse：判回仓主单。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mold_judge_returnwarehouse：判回仓主单（核心）",
+            "zgMes.dbo.tb_mold_judge_returnwarehouse_sign：判回仓签收",
+            "zgMes.dbo.tb_mold_judge_returnwarehouse_sign_temp：判回仓签收临时表",
+            "zgMes.dbo.tb_mold_flow_pot_mold：装煲 / 回仓流转（PDA 扫描）",
+            "zgMes.dbo.tb_mold_flow_pot_mold_temporary：装煲临时表",
+            "zgMes.dbo.tb_mold_inbound_record：入库记录",
+            "zgMes.dbo.tb_mold_lk_inbound_log：立库入库日志",
+            "zgMes.dbo.tb_mold_change_proline：换产线单头",
+            "zgMes.dbo.tb_mold_change_proline_detail：换产线明细"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s9",
+      "title": "第八种：修模",
+      "badge": "9",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "故障修模、派工、考核；上机考核取修模工也读这里。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mold_repair：修模任务 / 故障修模主表。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mold_repair：修模任务（核心）",
+            "zgMes.dbo.tb_mold_repair_todev：机台到修模工映射",
+            "zgMes.dbo.tb_mold_repair_record：修模操作记录",
+            "zgMes.dbo.tb_mold_repair_assigning：修模派工 / 分配",
+            "zgMes.dbo.tb_mold_repair_area：修模区域",
+            "zgMes.dbo.tb_mold_repair_message：修模消息 / 通知",
+            "zgMes.dbo.tb_mold_repair_log：修模日志",
+            "zgMes.dbo.tb_mold_repair_middle：修模中间状态，含氮化相关字段",
+            "zgMes.dbo.tb_mold_wxtodev：外协到机台映射",
+            "zgMes.dbo.tb_mold_diff_analy：不合格 / 差异分析主表",
+            "zgMes.dbo.tb_mold_diff_analy_d：差异分析明细",
+            "zgMes.dbo.tb_mold_examine：模具检验 / 考核",
+            "zgMes.dbo.tb_mold_assessment_log：修模考核日志",
+            "zgMes.dbo.tb_mold_assessment_nonessential：非必要考核模具",
+            "zgMes.dbo.tb_mold_assessment_nonessential_rule：非必要考核规则",
+            "zgMes.dbo.v_mold_repair：修模汇总视图",
+            "zgMes.dbo.v_mold_repair_nomold：无模修模视图"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s10",
+      "title": "第九种：返修",
+      "badge": "10",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "返修开单、回执、返修后再上机。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mold_return_repair / tb_mold_return_repair_detail：返修单头 / 明细。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mold_return_repair：返修单头（核心）",
+            "zgMes.dbo.tb_mold_return_repair_detail：返修单明细",
+            "zgMes.dbo.tb_mold_returnrep：返修回执主表",
+            "zgMes.dbo.tb_mold_returnrep_detail：返修回执明细",
+            "zgMes.dbo.tb_mold_flow_reuse_up_list：返修后复用上机 / 再上架清单"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s11",
+      "title": "第十种：氮化",
+      "badge": "11",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "氮化入炉 / 出炉登记，以及是否需要发炉的配置。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mold_flow_outp_stove / tb_mold_flow_outp_stove_list：氮化单头 / 明细。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mold_flow_outp_stove：氮化 / 外发炉单头（入炉、工艺、出炉）",
+            "zgMes.dbo.tb_mold_flow_outp_stove_list：氮化明细（条码、炉次）",
+            "zgMes.dbo.tb_mold_flow_outp_stove_middle：氮化过程中间表",
+            "zgMes.dbo.tb_mold_needstove_config：是否需要氮化 / 发炉配置"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s12",
+      "title": "旁路：试模 / 送检",
+      "badge": "12",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "试模申请、任务、结论、检验；常和点模、下架一起走。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mold_test_apply：试模申请单。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mold_test_apply：试模申请单（核心）",
+            "zgMes.dbo.tb_mold_trial_detail：试模任务明细",
+            "zgMes.dbo.tb_mold_trial_conclusion：试模结论",
+            "zgMes.dbo.tb_mold_inspection_record_detail：检验记录明细",
+            "zgMes.dbo.tb_mold_inspection_record_detail_examine：检验考核明细",
+            "zgMes.dbo.tb_mold_test_free_detail：免费试模明细",
+            "zgMes.dbo.tb_mold_test_time_stand：试模时间标准",
+            "zgMes.dbo.tb_mold_trialmold_pause：试模暂停",
+            "zgMes.dbo.tb_bas_mold_test_subsidy_standard：试模补贴标准",
+            "zgMes.dbo.tb_mold_exemption_query：免检模具查询配置"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s13",
+      "title": "旁路：报废 / 跨档 / 调拨",
+      "badge": "13",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "报废申请、跨档匹配、厂内调拨。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mold_scrap_app：报废申请主表。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mold_scrap_app：报废申请主表（核心）",
+            "zgMes.dbo.tb_mold_scrap_app_line：报废申请行",
+            "zgMes.dbo.tb_mold_scrap_app_list：报废申请清单",
+            "zgMes.dbo.tb_mold_crosslevelmold：跨档模具主表",
+            "zgMes.dbo.tb_mold_crosslevelmold_detail：跨档模具明细，影响可申领列表",
+            "zgMes.dbo.tb_mold_transfer_apply：调拨申请主表",
+            "zgMes.dbo.tb_mold_transfer_apply_detail：调拨申请明细",
+            "zgMes.dbo.tb_mold_transfer_in：模具调入",
+            "zgMes.dbo.tb_mold_transfer_in_detail：调入明细",
+            "zgMes.dbo.tb_mold_transfer_out：模具调出",
+            "zgMes.dbo.tb_mold_transfer_out_detail：调出明细",
+            "zgMes.dbo.tb_mold_transferInfo_sync：调拨信息同步"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s14",
+      "title": "状态字典与轨迹",
+      "badge": "14",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "业务目的"
+        },
+        {
+          "type": "p",
+          "text": "状态变更流水、看板快照、流转路由、同步 COMMS。"
+        },
+        {
+          "type": "h3",
+          "text": "核心表"
+        },
+        {
+          "type": "p",
+          "text": "tb_mod_stock_list：每次状态变更写一条。"
+        },
+        {
+          "type": "h3",
+          "text": "本阶段表"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "zgMes.dbo.tb_mod_stock_list：库存状态轨迹（核心）",
+            "zgMes.dbo.tb_mod_stock_list_jy_info：库存轨迹-挤压扩展",
+            "zgMes.dbo.tb_mold_status_result：产线 x 产品模具状态快照",
+            "zgMes.dbo.tb_mold_status_mapping：状态码到类别 / 步骤映射",
+            "zgMes.dbo.tb_mold_reason_list：下架 / 卸模 / 返修等原因字典",
+            "zgMes.dbo.tb_mod_sta_sync：COMMS 与智工同步状态控制",
+            "zgMes.dbo.tb_mold_auto_log：自动化操作日志",
+            "zgMes.dbo.tb_mold_warning：未回仓 / 未出库等预警",
+            "zgMes.dbo.tb_mold_tran_stock_jz：库存轨迹记账",
+            "zgMes.dbo.tb_mold_flow_router_list：流转路由清单",
+            "zgMes.dbo.tb_mold_flow_router_standard：流转路由标准",
+            "zgMes.dbo.tb_mold_flow_adjust：流转调整记录",
+            "zgMes.dbo.tb_mold_initial_info_sync_to_comms：初始信息同步到 COMMS",
+            "zgMes.dbo.v_mold_circulation_record：模具周转全记录视图"
+          ]
+        },
+        {
+          "type": "warning",
+          "text": "注意：工作区 tb_mold_ 物理表约 144 张。本文只列点模到氮化现场链上会碰到的表。图纸、工艺、造型、模具订单、钢材再利用等设计制造表不在这条链上。备份表（_bak）已排除。"
+        }
+      ]
+    }
+  ]
+}
