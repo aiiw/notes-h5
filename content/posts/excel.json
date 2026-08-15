@@ -1,0 +1,400 @@
+{
+  "id": "excel",
+  "title": "Excel 中高级常用公式速查表",
+  "intro": "Excel 中高级常用公式速查表",
+  "updated": "2026-08-15T00:34:57.000Z",
+  "private": false,
+  "sections": [
+    {
+      "id": "s1",
+      "title": "一、查找引用类（最常用）",
+      "badge": "1",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "1. XLOOKUP（VLOOKUP 的全面替代）"
+        },
+        {
+          "type": "code",
+          "text": "=XLOOKUP(查找值, 查找区域, 返回区域, [找不到时返回], [匹配模式], [搜索模式])"
+        },
+        {
+          "type": "p",
+          "text": "用途：垂直/水平查找，支持向左查找、近似匹配、倒序搜索"
+        },
+        {
+          "type": "p",
+          "text": "示例：=XLOOKUP(A2, 模具表!A:A, 模具表!C:C, \"未找到\", 0)"
+        },
+        {
+          "type": "h3",
+          "text": "2. INDEX + MATCH（经典组合，兼容性最好）"
+        },
+        {
+          "type": "code",
+          "text": "=INDEX(返回区域, MATCH(查找值, 查找区域, 0))"
+        },
+        {
+          "type": "p",
+          "text": "用途：双向查找，所有 Excel 版本通用"
+        },
+        {
+          "type": "p",
+          "text": "示例：=INDEX(库存!C:C, MATCH(B2, 库存!A:A, 0))"
+        },
+        {
+          "type": "h3",
+          "text": "3. XMATCH（增强版 MATCH）"
+        },
+        {
+          "type": "code",
+          "text": "=XMATCH(查找值, 查找区域, [匹配模式], [搜索模式])"
+        },
+        {
+          "type": "p",
+          "text": "用途：支持通配符、二分搜索、倒序查找，返回位置"
+        },
+        {
+          "type": "p",
+          "text": "示例：=XMATCH(\"*模具*\", A:A, 2)"
+        },
+        {
+          "type": "h3",
+          "text": "4. FILTER（动态筛选，返回多行结果）"
+        },
+        {
+          "type": "code",
+          "text": "=FILTER(数据区域, 条件区域=条件, [无结果时返回])"
+        },
+        {
+          "type": "p",
+          "text": "用途：按条件筛选出所有匹配行，自动溢出"
+        },
+        {
+          "type": "p",
+          "text": "示例：=FILTER(A2:D100, C2:C100=\"待试模\", \"无数据\")"
+        },
+        {
+          "type": "p",
+          "text": "多条件示例：=FILTER(A2:D100, (B2:B100=\"凤铝\")*(C2:C100>50))"
+        },
+        {
+          "type": "h3",
+          "text": "5. INDIRECT（间接引用）"
+        },
+        {
+          "type": "code",
+          "text": "=INDIRECT(文本形式的单元格地址)"
+        },
+        {
+          "type": "p",
+          "text": "用途：根据文本动态生成引用，常用于跨表汇总；注意：易失性函数，大数据会变慢"
+        },
+        {
+          "type": "p",
+          "text": "示例：=INDIRECT(A1&\"!B2\")"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "title": "二、动态数组类（Excel365专属）",
+      "badge": "2",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "6. UNIQUE（去重）"
+        },
+        {
+          "type": "code",
+          "text": "=UNIQUE(区域, [按列/按行], [只返回出现一次的])"
+        },
+        {
+          "type": "p",
+          "text": "示例：=UNIQUE(A2:A1000)"
+        },
+        {
+          "type": "h3",
+          "text": "7. SORT / SORTBY（排序）"
+        },
+        {
+          "type": "code",
+          "text": "=SORT(区域, 排序列序号, 升序1/降序-1) =SORTBY(区域, 排序依据区域1, 顺序1, ...)"
+        },
+        {
+          "type": "p",
+          "text": "示例：=SORT(A2:C100, 3, -1)"
+        },
+        {
+          "type": "p",
+          "text": "多列排序：=SORTBY(A2:C100, B2:B100, 1, C2:C100, -1)"
+        },
+        {
+          "type": "h3",
+          "text": "8. SEQUENCE（生成序列）"
+        },
+        {
+          "type": "code",
+          "text": "=SEQUENCE(行数, [列数], [起始值], [步长])"
+        },
+        {
+          "type": "p",
+          "text": "示例：=SEQUENCE(10, 1, 1, 1)"
+        },
+        {
+          "type": "h3",
+          "text": "9. TEXTSPLIT（文本拆分，替代分列）"
+        },
+        {
+          "type": "code",
+          "text": "=TEXTSPLIT(文本, 列分隔符, [行分隔符], [忽略空值], [匹配模式], [补全值])"
+        },
+        {
+          "type": "p",
+          "text": "示例：=TEXTSPLIT(A1, \"-\")"
+        },
+        {
+          "type": "h3",
+          "text": "10. TEXTJOIN（文本合并）"
+        },
+        {
+          "type": "code",
+          "text": "=TEXTJOIN(分隔符, 是否忽略空值, 文本区域或文本)"
+        },
+        {
+          "type": "p",
+          "text": "示例：=TEXTJOIN(\"、\", TRUE, IF(B2:B10>50, A2:A10, \"\"))"
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "title": "三、条件统计类",
+      "badge": "3",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "11. SUMIFS（多条件求和）"
+        },
+        {
+          "type": "code",
+          "text": "=SUMIFS(求和区域, 条件区域1, 条件1, 条件区域2, 条件2, ...)"
+        },
+        {
+          "type": "h3",
+          "text": "12. COUNTIFS（多条件计数）"
+        },
+        {
+          "type": "code",
+          "text": "=COUNTIFS(条件区域1, 条件1, 条件区域2, 条件2, ...)"
+        },
+        {
+          "type": "h3",
+          "text": "13. AVERAGEIFS（多条件求平均）"
+        },
+        {
+          "type": "code",
+          "text": "=AVERAGEIFS(求平均区域, 条件区域1, 条件1, ...)"
+        },
+        {
+          "type": "h3",
+          "text": "14. SUMPRODUCT（万能乘积求和，全版本兼容）"
+        },
+        {
+          "type": "code",
+          "text": "=SUMPRODUCT(条件1*条件2*..., 求和区域)"
+        },
+        {
+          "type": "h3",
+          "text": "15. MAXIFS / MINIFS（条件最大最小值）"
+        },
+        {
+          "type": "code",
+          "text": "=MAXIFS(取值区域, 条件区域, 条件)"
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "title": "四、逻辑判断类",
+      "badge": "4",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "16. IFS（多条件判断，替代嵌套IF）"
+        },
+        {
+          "type": "code",
+          "text": "=IFS(条件1, 结果1, 条件2, 结果2, ..., TRUE, 默认结果)"
+        },
+        {
+          "type": "h3",
+          "text": "17. SWITCH（精确匹配多分支）"
+        },
+        {
+          "type": "code",
+          "text": "=SWITCH(表达式, 值1, 结果1, 值2, 结果2, ..., [默认])"
+        },
+        {
+          "type": "h3",
+          "text": "18. IF + AND / OR"
+        },
+        {
+          "type": "code",
+          "text": "=IF(AND(A1>0, B1<100), \"正常\", \"异常\") =IF(OR(A1=\"紧急\", B1=\"VIP\"), \"优先处理\", \"普通\")"
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "title": "五、错误处理类",
+      "badge": "5",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "19. IFERROR"
+        },
+        {
+          "type": "code",
+          "text": "=IFERROR(原公式, 出错时返回的值)"
+        },
+        {
+          "type": "h3",
+          "text": "20. IFNA（只捕获#N/A）"
+        },
+        {
+          "type": "code",
+          "text": "=IFNA(原公式, 找不到时返回的值)"
+        },
+        {
+          "type": "h3",
+          "text": "21. IS系列判断函数"
+        },
+        {
+          "type": "code",
+          "text": "函数 | 用途\nISNUMBER(A1) | 是否为数字\nISTEXT(A1) | 是否为文本\nISBLANK(A1) | 是否为空\nISERROR(A1) | 是否为任意错误"
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "title": "六、日期时间类",
+      "badge": "6",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "22. EOMONTH（月末）"
+        },
+        {
+          "type": "code",
+          "text": "=EOMONTH(起始日期, 月数偏移)"
+        },
+        {
+          "type": "h3",
+          "text": "23. WORKDAY（工作日）"
+        },
+        {
+          "type": "code",
+          "text": "=WORKDAY(起始日期, 天数, [节假日区域])"
+        },
+        {
+          "type": "h3",
+          "text": "24. DATEDIF（隐藏函数，计算间隔）"
+        },
+        {
+          "type": "code",
+          "text": "=DATEDIF(开始日期, 结束日期, \"单位\")"
+        },
+        {
+          "type": "h3",
+          "text": "25. WEEKNUM / ISOWEEKNUM 周次"
+        },
+        {
+          "type": "code",
+          "text": "=WEEKNUM(日期, 2) =ISOWEEKNUM(日期)"
+        }
+      ]
+    },
+    {
+      "id": "s7",
+      "title": "七、文本处理类",
+      "badge": "7",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "26. SUBSTITUTE 替换"
+        },
+        {
+          "type": "code",
+          "text": "=SUBSTITUTE(文本, 旧文本, 新文本, [替换第几个])"
+        },
+        {
+          "type": "h3",
+          "text": "27. MID+FIND 截取两分隔符中间内容"
+        },
+        {
+          "type": "code",
+          "text": "=MID(A1, FIND(\"-\", A1)+1, FIND(\"-\", A1, FIND(\"-\", A1)+1)-FIND(\"-\", A1)-1)"
+        },
+        {
+          "type": "h3",
+          "text": "28. TRIM+CLEAN 清洗不可见字符"
+        },
+        {
+          "type": "code",
+          "text": "=TRIM(CLEAN(A1))"
+        },
+        {
+          "type": "h3",
+          "text": "29. VALUE / TEXT 类型转换"
+        },
+        {
+          "type": "code",
+          "text": "=VALUE(A1) =TEXT(A1, \"0000\") =TEXT(A1, \"yyyy-mm-dd\")"
+        }
+      ]
+    },
+    {
+      "id": "s8",
+      "title": "八、进阶",
+      "badge": "8",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "30. 溢出 # 运算符"
+        },
+        {
+          "type": "code",
+          "text": "=SORT(UNIQUE(FILTER(A2:A100, B2:B100>0))) =COUNTA(C2#)"
+        },
+        {
+          "type": "h3",
+          "text": "31. LET 定义中间变量"
+        },
+        {
+          "type": "code",
+          "text": "=LET( 模具编号, A2, 查找结果, XLOOKUP(模具编号, 模具表!A:A, 模具表!C:C), IF(ISNA(查找结果), \"未找到\", 查找结果) )"
+        },
+        {
+          "type": "h3",
+          "text": "32. LAMBDA"
+        },
+        {
+          "type": "code",
+          "text": "=LAMBDA(x, y, x*y+10)"
+        }
+      ]
+    },
+    {
+      "id": "s9",
+      "title": "学习优先级",
+      "badge": "9",
+      "blocks": [
+        {
+          "type": "code",
+          "text": "优先级 | 公式 | 理由\n⭐⭐⭐ | XLOOKUP,FILTER,UNIQUE,SORT | 365核心，替代大量旧操作\n⭐⭐⭐ | SUMIFS,COUNTIFS,SUMPRODUCT | 台账统计高频\n⭐⭐ | IFERROR,IFS,SWITCH | 报表整洁\n⭐⭐ | TEXTSPLIT,TEXTJOIN | 文本处理效率\n⭐ | LET,LAMBDA | 复杂公式维护"
+        }
+      ]
+    }
+  ]
+}
