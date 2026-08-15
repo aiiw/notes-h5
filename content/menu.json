@@ -83,6 +83,16 @@
       "private": false,
       "category": "work",
       "order": 7
+    },
+    {
+      "id": "mold-pick-rules-v1",
+      "title": "Office导入示例",
+      "desc": "Office导入示例",
+      "updated": "2026-08-15",
+      "enabled": true,
+      "private": false,
+      "category": "work",
+      "order": 8
     }
   ]
 }
