@@ -104,6 +104,16 @@
       "private": false,
       "category": "work",
       "order": 9
+    },
+    {
+      "id": "mold-circulation-time-301",
+      "title": "新兴模具运转车间各工序运转时限考核规定",
+      "desc": "凤铝字[2026]第301号。建材有订单、可用模≤2套时，超时转序按套扣分。自发文之日起执行，动态复盘。",
+      "updated": "2026-08-15",
+      "enabled": true,
+      "private": false,
+      "category": "work",
+      "order": 10
     }
   ]
 }
