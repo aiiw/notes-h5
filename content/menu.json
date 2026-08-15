@@ -73,6 +73,16 @@
       "private": false,
       "category": "study",
       "order": 6
+    },
+    {
+      "id": "excel",
+      "title": "Excel 中高级常用公式速查表",
+      "desc": "Excel 中高级常用公式速查表",
+      "updated": "2026-08-15",
+      "enabled": true,
+      "private": false,
+      "category": "work",
+      "order": 7
     }
   ]
 }
