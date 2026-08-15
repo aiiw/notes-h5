@@ -1,65 +1,15 @@
 {
   "id": "excel-formulas",
   "title": "Excel 高效公式速查",
-  "intro": "从参考站迁移的可折叠笔记骨架，可在管理后台继续追加章节。",
-  "updated": "2026-08-14T03:02:15.546Z",
-  "sections": [
-    {
-      "id": "s1",
-      "title": "MAP — 逐元素变换",
-      "badge": "1",
-      "blocks": [
-        {
-          "type": "p",
-          "text": "对数组每个元素执行同一计算，常配合 LAMBDA / XLOOKUP。"
-        },
-        {
-          "type": "h3",
-          "text": "基本写法"
-        },
-        {
-          "type": "code",
-          "text": "=MAP(A2:A10, LAMBDA(x, x*2))\n=MAP(A2:A10, B2:B10, LAMBDA(数量, 单价, 数量*单价))"
-        },
-        {
-          "type": "tip",
-          "text": "固定写法：MAP(区域, LAMBDA(x, 对x的计算))"
-        }
-      ]
-    },
-    {
-      "id": "s2",
-      "title": "SCAN — 逐步累积",
-      "badge": "2",
-      "blocks": [
-        {
-          "type": "p",
-          "text": "返回每一步中间结果，适合累计求和、连续标记。"
-        },
-        {
-          "type": "code",
-          "text": "=SCAN(0, A2:A10, LAMBDA(累计, 当前, 累计 + 当前))"
-        },
-        {
-          "type": "info",
-          "text": "SCAN 返回数组；REDUCE 只返回最终值。"
-        }
-      ]
-    },
-    {
-      "id": "s3",
-      "title": "XLOOKUP 速查",
-      "badge": "3",
-      "blocks": [
-        {
-          "type": "code",
-          "text": "=XLOOKUP(查找值, 查找列, 返回列, \"无数据\")"
-        },
-        {
-          "type": "warning",
-          "text": "找不到时一定要给第4参数，避免满屏 #N/A。"
-        }
-      ]
-    }
-  ]
+  "intro": "（私密内容，需密码解锁）",
+  "updated": "2026-08-15T03:58:44.000Z",
+  "private": true,
+  "enc": {
+    "v": 1,
+    "alg": "AES-GCM",
+    "salt": "nNCWxBK+TbMhQLvpc6uGHg==",
+    "iv": "EMeGHDRedIiBqe2+",
+    "data": "kp3HcX8Nc6g89AMwtGbedDzZSXHXIMDrcn9rNrLQlFoQEwb9OPniRluaORABZUUFrlqPFKwntiAZFyr3dkJp1/VkLPqW4IZyB0S/FG2ljCRdwyl7SoU64TVoJCpp8ekN/ZiuTAdSZXxqQGHm6vCBI2MLEYSzHxrFhd7JktI7GQCs+hBqNFJapNFQ8uz0Rg7QjwTqELlo45lbkuyBijn2q6PL41deCXk4/5IucmSGUTuZqbifoyW5lDuC76nYC0Kzofye74KlNT13QS4iAU4ofPxMtffyhKejzyMgDHvHwg/jZngC4QlkAxxFuutOEmz4jlOQPyo4ODB9B1LCldJ6pGYDgbw9acDmA5KQCAHM1cqt7yJEuBtZFX/FNwipaThQ42KideNlF+Xq4uG/wjWM70Xqzw3Wjqxu8Rj+SjFOXzL36uhbfmsEzMpU3LaELr35LoqlEuZAmBds4B2ui+z7IhqvkdHyJzqusXbPXKfTZ30rfDJHK0zb6UTDhkB+QKsyN4f671jOTzrLFMhb5n/zcEKMTcTkpXFayDvBaFyGhoADHUHaRF1EbBjKhLA9V5AXlnozw7RAjh7Q+nk1z7Zgnst1o2bi3cgC7cdbJ+7KncQbeNKGcqKxl5x3kXT/ze4/lUHFWTLj2fWd190bRCxXiQCOiPtmEFvQcSOv+DyvptrkgCsD/tz23qd/o0WGhIhQnvIHXYz4B4n+Nt3ZyZ1jj1qFWL/cDwSZs70/cc5mjkdQDkHc7JeNQvr/3PjtTy0t9lOTCuWTwTNHBuuhNhQqbpYWJc7LtVrSbcTojRtuSYCYpaFm5uKmiNMGBHapmDvlpqjCxXrrzH2VAn9Q/DjqtWEWZHsZTTlIsLB8XxynYVTdooBkQoXHWVML5a2Cz1PU13/si6y3DwJjkEqK+J8Twp6w1HMs7i1yP6Gp7CzOUvhWQRUr7gqf8LGtscMD/Gx3XzzFJd/TmLv/Tjd2z4g7nIALiKgCsKe3+tHB6Mu1u+q6cL5wiu3ASIKYL2sRidjsakr5UhmT1SfT+dIlir26/+0H+yd5v1zXf2K07IYocVAy2a5QrfUUONX1T/y/k9nvuxwiiITCRy0h1jjNOc06oDVbne5mbO8kuNssyDegM9FffdzEkaECdgwX7QMl1Mi26cxoAGPAsttDIGoX8dTZFv61yCnG+HMtCWGMSj75uD0AiGzNe7wb0sacuOjlHhV2ZPwHME3aWXVgeXlZFFf+/Hj3RlxlpXedqaVM5x2sPhT5gi9yCpXMhS3GColRqpZf5yvDJs9/t1jR5ZotLBpYsBgYoQN6LAhgmxIbjxDlR0hfZCwarbwOF648yrufdmiT6l4JWOYpUo89racJh+RiOmlfzHoLH3WVdeokYE5nDU1A8PTcbA/WVXEIzofI3v7nzTpKfZozlpoE116ERRR6nj85oZibXRFK+Yw7uRoM+FjdGQolS1yl0yF2BgWCtRZT4S3LgduSKx+GztQq"
+  },
+  "sections": []
 }
