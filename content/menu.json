@@ -94,6 +94,16 @@
       "private": false,
       "category": "work",
       "order": 8
+    },
+    {
+      "id": "mold-lifecycle-tables",
+      "title": "模具全流程表清单",
+      "desc": "点模 → 下架 → 签收 → 加热 → 上机 → 发煲 → 判回仓 → 修模 → 返修 → 氮化。主档 tb_bas_mold 与轨迹 tb_mod_stock",
+      "updated": "2026-08-15",
+      "enabled": true,
+      "private": false,
+      "category": "work",
+      "order": 9
     }
   ]
 }
