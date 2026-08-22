@@ -1,0 +1,20 @@
+{
+  "id": "snippet",
+  "title": "Snippet速查表",
+  "intro": "Snippet速查表",
+  "updated": "2026-08-22T00:57:46.000Z",
+  "private": false,
+  "sections": [
+    {
+      "id": "s1",
+      "title": "第1章",
+      "badge": "1",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "在这里填写第 1 章的内容…"
+        }
+      ]
+    }
+  ]
+}
