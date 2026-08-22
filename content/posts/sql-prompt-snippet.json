@@ -1,0 +1,20 @@
+{
+  "id": "sql-prompt-snippet",
+  "title": "SQL Prompt 快捷键 & Snippet速查表",
+  "intro": "SQL Prompt 快捷键 & Snippet速查表",
+  "updated": "2026-08-22T00:55:58.000Z",
+  "private": false,
+  "sections": [
+    {
+      "id": "s1",
+      "title": "SQL Prompt 快捷键 & Snippet速查表",
+      "badge": "1",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "未能按 h2 拆分章节，请检查 HTML 结构"
+        }
+      ]
+    }
+  ]
+}
