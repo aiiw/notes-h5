@@ -1,0 +1,102 @@
+{
+  "id": "ssms-vs-ctrl-k",
+  "title": "SSMS / VS Ctrl+K 和弦快捷键速查表",
+  "intro": "SSMS / VS Ctrl+K 和弦快捷键速查表 · SSMS / VS Ctrl+K 和弦快捷键速查表 概念说明：Ctrl+K 为和弦前缀（Chord），按住Ctrl，先按K，保持Ctrl不放，再按下第二个按键。 ⚠️SSMS是阉割版VS编辑器，部分VS原生快捷键在SSMS无效，表格中标注✅=SSMS可用，❌=仅Visual Studio可用。",
+  "updated": "2026-09-01T01:44:46.000Z",
+  "private": false,
+  "sections": [
+    {
+      "id": "s1",
+      "title": "一、编辑文本类（写SQL最常用）",
+      "badge": "1",
+      "blocks": [
+        {
+          "type": "code",
+          "text": "快捷键 | 功能 | SSMS支持 | 备注\nCtrl+K, Ctrl+C | 注释选中行（--行注释） | ✅ | Comment，高频使用\nCtrl+K, Ctrl+U | 取消注释选中行 | ✅ | Uncomment\nCtrl+K, Ctrl+D | 格式化整个文档 | ✅ | 整个SQL文档排版对齐\nCtrl+K, Ctrl+F | 仅格式化选中片段 | ✅ | 只格式化高亮选中的代码块\nCtrl+K, Ctrl+\\ | 删除选中区域多余水平空白 | ✅ | 清理多余空格、行尾空格\nCtrl+K, Ctrl+S | 外侧包裹代码片段 surround with | ❌ | VS用于if/try代码块，SSMS不生效\nCtrl+K, Ctrl+I | IntelliSense快速信息提示 | ✅ | 光标放在函数上，弹出参数提示"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "title": "二、书签导航类（大SQL脚本跳转）",
+      "badge": "2",
+      "blocks": [
+        {
+          "type": "code",
+          "text": "快捷键 | 功能 | SSMS支持 | 备注\nCtrl+K, Ctrl+K | 切换书签（添加/移除当前行书签） | ✅ | 同一快捷键，有书签就删除，没有就新增\nCtrl+K, Ctrl+P | 跳到上一个书签 | ✅ | Previous\nCtrl+K, Ctrl+N | 跳到下一个书签 | ✅ | Next\nCtrl+K, Ctrl+L | 清除全部书签 | ✅ | 一次性清空本文件所有书签标记\nCtrl+K, Ctrl+B | 打开/关闭书签窗口面板 | ✅ | 调出书签列表面板，点击直接跳转"
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "title": "三、仅Visual Studio可用，SSMS完全无效",
+      "badge": "3",
+      "blocks": [
+        {
+          "type": "code",
+          "text": "快捷键 | VS原生功能 | SSMS支持\nCtrl+K, Ctrl+R | 生成封装字段重构 | ❌\nCtrl+K, Ctrl+M | 折叠/展开当前代码块大纲 | ❌\nCtrl+K, Ctrl+O | 折叠全部大纲 | ❌\nCtrl+K, Ctrl+T | 添加任务列表快捷标记 | ❌"
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "title": "字母记忆速记",
+      "badge": "4",
+      "blocks": [
+        {
+          "type": "ul",
+          "items": [
+            "C = Comment 注释",
+            "U = Un‑comment 取消注释",
+            "D = Document 整个文档格式化",
+            "F = Fragment 片段格式化",
+            "K = toggle Bookmark 书签开关（重复按键）",
+            "N = Next 下一个书签",
+            "P = Previous 上一个书签",
+            "L = Clear 清除全部书签",
+            "B = Bookmark window 书签面板",
+            "I = Info 智能提示信息"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "title": "实操小提示",
+      "badge": "5",
+      "blocks": [
+        {
+          "type": "ul",
+          "items": [
+            "按下 Ctrl+K，状态栏提示 (Ctrl+K pressed, waiting for second key)，代表成功进入和弦模式；按 Esc 可以退出和弦模式。",
+            "SSMS格式化 Ctrl+K,D 排版效果依赖配置，复杂嵌套SQL排版效果不一定完美。",
+            "书签仅当前查询标签页有效，关闭标签页书签全部丢失。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "title": "补充：SSMS大纲折叠快捷键（Ctrl+M 另一组和弦）",
+      "badge": "6",
+      "blocks": [
+        {
+          "type": "ul",
+          "items": [
+            "Ctrl+M, Ctrl+M：折叠/展开当前代码块",
+            "Ctrl+M, Ctrl+O：全部折叠大纲",
+            "Ctrl+M, Ctrl+L：全部展开大纲"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "区分：Ctrl+K系列负责书签、注释、格式化；Ctrl+M系列专门负责代码大纲折叠。"
+        },
+        {
+          "type": "p",
+          "text": "更新：2026‑09‑01"
+        }
+      ]
+    }
+  ]
+}
