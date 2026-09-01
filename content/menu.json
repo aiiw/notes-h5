@@ -134,6 +134,16 @@
       "private": false,
       "category": "work",
       "order": 12
+    },
+    {
+      "id": "ssms-vs-ctrl-k",
+      "title": "SSMS / VS Ctrl+K 和弦快捷键速查表",
+      "desc": "SSMS / VS Ctrl+K 和弦快捷键速查表 · SSMS / VS Ctrl+K 和弦快捷键速查表 概念说明：Ctrl+K 为和弦前缀（Chord），按",
+      "updated": "2026-09-01",
+      "enabled": true,
+      "private": false,
+      "category": "study",
+      "order": 13
     }
   ]
 }
