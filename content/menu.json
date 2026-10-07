@@ -144,6 +144,16 @@
       "private": false,
       "category": "study",
       "order": 13
+    },
+    {
+      "id": "let-islands-gaps",
+      "title": "从 LET 到 Islands & Gaps",
+      "desc": "从 LET 到 Islands & Gaps · 目录 00函数速查 01LET 起名字 02减负运算 03比较的类型顺序 04FILTER 筛选 05SORT",
+      "updated": "2026-10-07",
+      "enabled": true,
+      "private": false,
+      "category": "work",
+      "order": 14
     }
   ]
 }
