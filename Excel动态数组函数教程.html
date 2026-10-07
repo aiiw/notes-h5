@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Excel 365 动态数组实战：从 LET 到 Islands &amp; Gaps</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23EDEFEA'/%3E%3Crect x='3' y='3' width='12' height='12' fill='%2315181B'/%3E%3Crect x='17' y='3' width='12' height='12' fill='none' stroke='%2315181B' stroke-width='2'/%3E%3Crect x='3' y='17' width='12' height='12' fill='none' stroke='%2315181B' stroke-width='2'/%3E%3Crect x='17' y='17' width='12' height='12' fill='%23DDF247'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --paper:#EDEFEA;
+  --card:#FFFFFF;
+  --ink:#15181B;
+  --ink2:#5C666D;
+  --ink3:#8A9298;
+  --rule:#D3D8D2;
+  --rule2:#E6E9E4;
+  --hl:#DDF247;
+  --ok:#16714A;
+  --bad:#B03A1F;
+  --isl1:#E4EDFB;
+  --isl2:#BDD2F5;
+  --isl3:#8FB0EC;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace;
+  --sans:"Noto Sans SC",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  font-family:var(--sans);
+  color:var(--ink);
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(rgba(21,24,27,.038) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(21,24,27,.038) 1px,transparent 1px);
+  background-size:22px 22px;
+  font-size:16px;
+  line-height:1.75;
+  letter-spacing:.005em;
+}
+::selection{background:var(--hl);color:var(--ink)}
+
+/* ---------- 布局骨架 ---------- */
+.shell{max-width:1040px;margin:0 auto;padding:0 28px 120px;display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:1100px){
+  .shell{grid-template-columns:180px minmax(0,1fr);column-gap:52px}
+  .toc{display:block!important}
+  main{margin:0}
+}
+main{min-width:0;width:100%;max-width:720px;margin:0 auto}
+
+/* ---------- 目录 ---------- */
+.toc{display:none;position:sticky;top:0;align-self:start;padding-top:64px;font-size:13px}
+.toc-t{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--ink3);text-transform:uppercase;margin:0 0 14px}
+.toc a{display:grid;grid-template-columns:26px 1fr;gap:6px;padding:5px 0;color:var(--ink2);text-decoration:none;border-left:2px solid transparent;padding-left:9px;line-height:1.4}
+.toc a .n{font-family:var(--mono);font-size:11px;color:var(--ink3);padding-top:2px}
+.toc a:hover{color:var(--ink)}
+.toc a.on{color:var(--ink);border-left-color:var(--ink);font-weight:700}
+.toc a.on .n{color:var(--ink)}
+
+/* ---------- Hero ---------- */
+.hero{padding:76px 0 52px;border-bottom:2px solid var(--ink);display:grid;gap:34px}
+@media(min-width:820px){.hero{grid-template-columns:minmax(0,1fr) 200px;align-items:end;gap:32px}}
+.hero-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--ink2);margin:0 0 20px}
+.hero h1{font-size:clamp(29px,4.4vw,42px);line-height:1.16;font-weight:900;letter-spacing:-.02em;margin:0 0 18px}
+.hero h1 .u{background:linear-gradient(transparent 62%,var(--hl) 62%);padding:0 2px}
+.hero p.lead{margin:0;font-size:16.5px;color:var(--ink2);max-width:44ch}
+.hero-meta{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px 18px;font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+.hero-meta b{color:var(--ink);font-weight:500}
+.hero-viz{align-self:end}
+
+/* ---------- 迷你格子 ---------- */
+.mini{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px;table-layout:fixed}
+.mini th{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink3);font-weight:400;text-align:center;padding:0 0 6px;border-bottom:1px solid var(--rule)}
+.mini td{border:1px solid var(--rule);text-align:center;padding:5px 0;background:var(--card)}
+.mini td.k{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mini td.g1{background:var(--isl1)}
+.mini td.g2{background:var(--isl2)}
+.mini td.g3{background:var(--isl3)}
+.mini-cap{font-family:var(--mono);font-size:10.5px;color:var(--ink3);margin-top:9px;line-height:1.5}
+
+/* ---------- 章节 ---------- */
+section{padding:62px 0 0;scroll-margin-top:16px}
+.sec-h{border-bottom:1px solid var(--ink);padding-bottom:14px;margin-bottom:30px;display:grid;grid-template-columns:auto 1fr;column-gap:16px;align-items:baseline}
+.sec-n{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);grid-row:1;letter-spacing:.02em}
+.sec-h h2{font-size:clamp(22px,2.8vw,29px);line-height:1.24;font-weight:900;letter-spacing:-.015em;margin:0;grid-column:2;grid-row:1}
+.sec-sub{grid-column:2;grid-row:2;margin:8px 0 0;color:var(--ink2);font-size:14.5px;max-width:100%}
+h3{font-size:17px;font-weight:700;margin:34px 0 12px;letter-spacing:-.005em}
+h3 .m{font-family:var(--mono);font-size:15px;font-weight:500}
+p{margin:0 0 15px;max-width:100%}
+ul,ol{margin:0 0 16px;padding-left:22px;max-width:100%}
+li{margin:5px 0}
+li::marker{color:var(--ink3)}
+code{font-family:var(--mono);font-size:.88em;background:rgba(21,24,27,.055);padding:2px 5px;border-radius:2px}
+strong{font-weight:700}
+.hl{background:linear-gradient(transparent 58%,var(--hl) 58%);padding:0 1px}
+.ok{color:var(--ok);font-weight:700}
+.bad{color:var(--bad);font-weight:700}
+
+/* ---------- 公式条 ---------- */
+.fbar{display:grid;grid-template-columns:auto minmax(0,1fr);background:var(--card);border:1px solid var(--rule);margin:0 0 18px;border-radius:2px;overflow:hidden}
+.fbar .fx{font-family:var(--mono);font-size:12px;font-style:italic;color:var(--ink2);background:#F5F7F3;border-right:1px solid var(--rule);padding:11px 12px;line-height:1.6;user-select:none}
+.fbar code{background:none;padding:11px 14px;font-size:13.5px;white-space:pre;overflow-x:auto;line-height:1.62;display:block}
+.fbar .cm{color:var(--ink3)}
+
+/* ---------- 表格 ---------- */
+.tw{overflow-x:auto;margin:0 0 18px}
+table.tb{border-collapse:collapse;width:100%;font-size:13.5px;table-layout:fixed;min-width:520px}
+table.tb th{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--ink2);text-align:left;background:#F5F7F3;border-bottom:1.5px solid var(--ink);border-right:1px solid var(--rule2);padding:9px 11px}
+table.tb td{border-bottom:1px solid var(--rule2);border-right:1px solid var(--rule2);padding:9px 11px;vertical-align:top;line-height:1.6}
+table.tb th:last-child,table.tb td:last-child{border-right:none}
+table.tb td.m{font-family:var(--mono);font-size:12.5px}
+table.tb tr:last-child td{border-bottom:1px solid var(--rule)}
+.tb-cap{font-family:var(--mono);font-size:11px;color:var(--ink3);margin:-8px 0 20px}
+
+/* ---------- 数组步进表 ---------- */
+.lab{background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:20px 20px 18px;margin:0 0 20px}
+.lab-top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.lab-title{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;color:var(--ink2)}
+.lab-ctl{display:flex;gap:8px}
+.btn{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;border:1px solid var(--ink);background:var(--card);color:var(--ink);padding:6px 14px;border-radius:2px;cursor:pointer;transition:background .14s,color .14s}
+.btn:hover{background:var(--ink);color:#fff}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.btn[disabled]{opacity:.32;cursor:not-allowed}
+.btn[disabled]:hover{background:var(--card);color:var(--ink)}
+.btn.ghost{border-color:var(--rule);color:var(--ink2)}
+.btn.ghost:hover{background:#F0F2EE;color:var(--ink)}
+
+.agrid{width:100%;border-collapse:collapse;table-layout:fixed;font-family:var(--mono);font-size:13px}
+.agrid th{font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.02em;color:var(--ink3);padding:0 0 8px;text-align:center;border-bottom:1px solid var(--rule);vertical-align:bottom;line-height:1.35}
+.agrid th .sub{display:block;font-size:9.5px;color:#A7AEA9}
+.agrid th.on{color:var(--ink);font-weight:700}
+.agrid td{border:1px solid var(--rule);text-align:center;padding:7px 2px;background:var(--card);transition:background .2s,color .2s,opacity .2s}
+.agrid td.rowh,.agrid th.rowh{width:34px;border:1px solid var(--rule);background:#F5F7F3;color:var(--ink3);font-size:11px;text-align:center}
+.agrid td.off{color:#C7CDC8;background:#FAFBF9}
+.agrid td.col-off{opacity:.22}
+.agrid td.t1{background:var(--isl1)}
+.agrid td.t2{background:var(--isl2)}
+.agrid td.t3{background:var(--isl3)}
+.agrid td.cur{box-shadow:inset 0 0 0 2px var(--ink)}
+.agrid td.true{color:var(--ok);font-weight:700}
+.agrid td.false{color:var(--bad)}
+.agrid td.dash{color:#C7CDC8}
+
+.step-txt{margin:16px 0 0;font-size:14px;line-height:1.7;border-top:1px dashed var(--rule);padding-top:14px;min-height:76px}
+.step-txt .stp{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink3);display:block;margin-bottom:6px}
+.progress{display:flex;gap:5px;margin:14px 0 0}
+.progress i{height:3px;flex:1;background:var(--rule);border-radius:2px;transition:background .25s}
+.progress i.done{background:var(--ink)}
+.agrid th.col-off{opacity:.3}
+
+/* ---------- 数组条 ---------- */
+.pitem{margin:0 0 16px}
+.plab{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink2);display:block;margin-bottom:7px}
+.arr{display:flex;width:max-content;font-family:var(--mono);font-size:13px}
+.arr span{
+  border:1px solid var(--rule);margin-left:-1px;
+  padding:8px 12px;min-width:52px;text-align:center;
+  background:var(--card);white-space:nowrap;
+}
+.arr span:first-child{margin-left:0}
+.arr span.tx{color:var(--ink2);font-style:italic}
+.arr span.bl{color:#A7AEA9;font-size:11.5px;padding-left:8px;padding-right:8px}
+.arr span.kill{background:#F3F5F1;color:#A7AEA9;text-decoration:line-through}
+.arr span.g1{background:var(--isl1)}
+.arr span.g2{background:var(--isl2)}
+.arr span.g3{background:var(--isl3)}
+.arr span.mark{background:var(--hl)}
+
+/* ---------- 提示块 ---------- */
+.note{border:1px solid var(--rule);border-top:3px solid var(--ink);background:var(--card);border-radius:2px;padding:16px 18px;margin:0 0 18px}
+.note .nt{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink2);margin:0 0 9px;display:block}
+.note p:last-child,.note ul:last-child{margin-bottom:0}
+.note.warn{border-top-color:var(--bad)}
+.note.warn .nt{color:var(--bad)}
+.note.good{border-top-color:var(--ok)}
+.note.good .nt{color:var(--ok)}
+
+/* ---------- 管线图 ---------- */
+.pipe{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:0 0 22px;border:1px solid var(--rule);background:var(--card);border-radius:2px;overflow:hidden}
+.pipe .node{flex:1 1 0;min-width:120px;padding:14px 14px 15px;border-right:1px solid var(--rule2)}
+.pipe .node:last-child{border-right:none}
+.pipe .pi{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.1em}
+.pipe .pf{font-family:var(--mono);font-size:14px;font-weight:700;margin:5px 0 4px}
+.pipe .pd{font-size:12.5px;color:var(--ink2);line-height:1.5}
+@media(max-width:700px){.pipe .node{flex:1 1 48%;border-bottom:1px solid var(--rule2)}}
+
+/* ---------- 页脚 ---------- */
+footer{margin-top:76px;border-top:2px solid var(--ink);padding-top:20px;font-family:var(--mono);font-size:11.5px;color:var(--ink3);display:flex;flex-wrap:wrap;gap:6px 24px}
+@media(max-width:520px){
+  .shell{padding:0 18px 80px}
+  section{padding-top:48px}
+  .hero{padding:52px 0 40px}
+  .agrid{font-size:11.5px}
+  .agrid th{font-size:9px}
+  .agrid td.rowh,.agrid th.rowh{width:26px;font-size:10px}
+  .btn{min-height:44px;min-width:64px;padding:10px 16px}
+  .lab{padding:16px 14px 14px}
+  .lab-top{gap:10px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <nav class="toc" aria-label="目录">
+    <p class="toc-t">目录</p>
+    <a href="#s0"><span class="n">00</span><span>函数速查</span></a>
+    <a href="#s1"><span class="n">01</span><span>LET 起名字</span></a>
+    <a href="#s2"><span class="n">02</span><span>减负运算</span></a>
+    <a href="#s3"><span class="n">03</span><span>比较的类型顺序</span></a>
+    <a href="#s4"><span class="n">04</span><span>FILTER 筛选</span></a>
+    <a href="#s5"><span class="n">05</span><span>SORTBY 排序</span></a>
+    <a href="#s6"><span class="n">06</span><span>DROP 错位对比</span></a>
+    <a href="#s7"><span class="n">07</span><span>VSTACK 补行</span></a>
+    <a href="#s8"><span class="n">08</span><span>SCAN 累加</span></a>
+    <a href="#s9"><span class="n">09</span><span>分组推演</span></a>
+    <a href="#s10"><span class="n">10</span><span>综合实战</span></a>
+    <a href="#s11"><span class="n">11</span><span>报错速查</span></a>
+    <a href="#s12"><span class="n">12</span><span>勘误</span></a>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div>
+        <p class="hero-kicker">动态数组实战 · Excel 365 / WPS 新版</p>
+        <h1>从 <span class="u">LET</span> 到 <span class="u">Islands &amp; Gaps</span></h1>
+        <p class="lead">把 8 个动态数组函数逐个拆开，再用它们拼出一条能跑完整流程的公式：转换 → 筛选 → 排序 → 连续段分组。</p>
+        <div class="hero-meta">
+          <span>适用：<b>Excel 365 / Excel 2024 / WPS 新版</b></span>
+          <span>数据：<b>全部为演示数据，可复现</b></span>
+        </div>
+      </div>
+      <div class="hero-viz">
+        <table class="mini" aria-label="原始值与分组编号示意">
+          <colgroup><col style="width:50%"><col style="width:50%"></colgroup>
+          <thead><tr><th>值</th><th>岛号</th></tr></thead>
+          <tbody>
+            <tr><td>10</td><td class="g1">1</td></tr>
+            <tr><td>10</td><td class="g1">1</td></tr>
+            <tr><td>20</td><td class="g2">2</td></tr>
+            <tr><td>20</td><td class="g2">2</td></tr>
+            <tr><td>20</td><td class="g2">2</td></tr>
+            <tr><td class="k">30</td><td class="g3">3</td></tr>
+          </tbody>
+        </table>
+        <p class="mini-cap">这就是本教程的终点：<br>把一列值切成一串"连续相同的段"。</p>
+      </div>
+    </header>
+
+    <!-- ===== 00 函数速查 ===== -->
+    <section id="s0">
+      <div class="sec-h">
+        <span class="sec-n">00</span>
+        <h2>函数速查</h2>
+        <p class="sec-sub">先认识这 8 个零件，后面所有公式都是它们的组合。</p>
+      </div>
+      <div class="tw">
+        <table class="tb">
+          <colgroup><col style="width:19%"><col style="width:9%"><col style="width:72%"></colgroup>
+          <thead><tr><th>函数</th><th>类型</th><th>一句话作用</th></tr></thead>
+          <tbody>
+            <tr><td class="m">LET</td><td>结构</td><td>给中间结果起名字，避免同一段表达式重复写好几遍。</td></tr>
+            <tr><td class="m">IFERROR</td><td>容错</td><td>表达式报错时，换一个值返回。</td></tr>
+            <tr><td class="m">FILTER</td><td>筛选</td><td>按条件布尔数组，挑出符合条件的行。</td></tr>
+            <tr><td class="m">SORTBY</td><td>排序</td><td>用另一组数组当排序标尺，对目标数组排序。</td></tr>
+            <tr><td class="m">DROP</td><td>切片</td><td>砍掉数组开头或结尾的若干行。</td></tr>
+            <tr><td class="m">VSTACK</td><td>拼接</td><td>把多个数组上下摞在一起，用来补齐行数。</td></tr>
+            <tr><td class="m">SCAN</td><td>累积</td><td>遍历数组并累加，输出每一步的累计值。</td></tr>
+            <tr><td class="m">LAMBDA</td><td>函数</td><td>写匿名函数，供 SCAN / MAP / REDUCE 调用。</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-cap">表 0-1 · 本教程涉及的全部函数</p>
+      <div class="note">
+        <span class="nt">前置条件</span>
+        <p>以上函数属于<strong>动态数组函数</strong>，Excel 2019 及更早版本、Excel 365 之前的 WPS 都不支持，会直接报 <code>#NAME?</code>。本文所有公式均在 <strong>Excel 365 / WPS 新版</strong> 下成立。</p>
+      </div>
+    </section>
+
+    <!-- ===== 01 LET ===== -->
+    <section id="s1">
+      <div class="sec-h">
+        <span class="sec-n">01</span>
+        <h2>LET：给公式起名字</h2>
+        <p class="sec-sub">它是后面所有长公式的地基——没有它，一条流水线会难读十倍。</p>
+      </div>
+      <p>语法是一个"<strong>名字、值、名字、值、…、最后结果</strong>"的配对列表：</p>
+      <div class="fbar"><span class="fx">fx</span><code>=LET(名字1, 值1, 名字2, 值2, …, 最终计算)</code></div>
+      <p>配对必须是偶数个参数，最后<strong>多出来的那一个</strong>才是返回值。上面这行里的 <code>名字N</code> 一旦定义，后面的表达式就能直接引用它，不必重复写同一段区域引用或同一个计算。</p>
+      <h3>对照：不用 LET 会怎样</h3>
+      <div class="fbar"><span class="fx">fx</span><code><span class="cm">' 同一段 IFERROR(--A2:A11, A2:A11) 写了三遍</span>
+=IFERROR(--A2:A11,A2:A11)&amp;"|"&amp;SUM(IFERROR(--A2:A11,A2:A11))</code></div>
+      <div class="fbar"><span class="fx">fx</span><code><span class="cm">' 用 LET 之后，只写一遍</span>
+=LET(arr, IFERROR(--A2:A11, A2:A11), arr&amp;"|"&amp;SUM(arr))</code></div>
+      <p>好处有三层：<strong>可读</strong>（一眼看出 arr 是什么）、<strong>好改</strong>（改一处即可）、<strong>更快</strong>（同一段计算只算一次，而不是每出现一次就算一遍）。</p>
+      <div class="note good">
+        <span class="nt">约定</span>
+        <p>本教程统一用这几个名字，看到它们就能对上号：</p>
+        <ul>
+          <li><code>rng</code> — 原始区域</li>
+          <li><code>arr</code> — 类型处理后的数组</li>
+          <li><code>cond</code> — 布尔条件数组</li>
+          <li><code>same</code> — 相邻是否相等</li>
+          <li><code>chg</code> — 是否开启新分组</li>
+          <li><code>group</code> — 分组编号</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===== 02 -- 与 IFERROR ===== -->
+    <section id="s2">
+      <div class="sec-h">
+        <span class="sec-n">02</span>
+        <h2>减负运算：<span class="m">--</span> 与 IFERROR</h2>
+        <p class="sec-sub">把"长得像数字的文本"变成真数字。</p>
+      </div>
+      <p><code>--</code> 是两个减号，术语叫<strong>减负运算</strong>（double unary）。它的作用是<strong>强制类型转换</strong>：对文本数字做两次取负，值不变，但类型从"文本"变成了"数字"。</p>
+      <div class="fbar"><span class="fx">fx</span><code>=--"123"   <span class="cm">→ 123        （文本转数字）</span>
+=--100     <span class="cm">→ 100        （本来就是数字，不变）</span>
+=--"abc"   <span class="cm">→ #VALUE!    （转不了，直接报错）</span>
+=--TRUE    <span class="cm">→ 1          （逻辑值转数字）</span></code></div>
+      <p>单独用它会很脆——只要区域内有一个转不了的值，整个公式就崩。所以永远和 <code>IFERROR</code> 配对：<strong>能转就转，转不了就原样保留</strong>。</p>
+      <div class="fbar"><span class="fx">fx</span><code>arr, IFERROR(--rng, rng)</code></div>
+
+      <h3>实测：各种输入会发生什么</h3>
+      <p>下面这组结果来自真实表格引擎逐格实测（A2:A11 十个单元格）：</p>
+      <div class="tw">
+        <table class="tb">
+          <colgroup><col style="width:12%"><col style="width:16%"><col style="width:15%"><col style="width:24%"><col style="width:33%"></colgroup>
+          <thead><tr><th>原值</th><th>类型</th><th><code>--原值</code></th><th><code>IFERROR(--原值,原值)</code></th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td class="m">100</td><td>数字</td><td class="m ok">100</td><td class="m">100</td><td>不变</td></tr>
+            <tr><td class="m">"100"</td><td>文本</td><td class="m ok">100</td><td class="m">100</td><td>文本数字转成功</td></tr>
+            <tr><td class="m">"  7 "</td><td>文本</td><td class="m ok">7</td><td class="m">7</td><td>前后空格被忽略</td></tr>
+            <tr><td class="m">abc</td><td>文本</td><td class="m bad">#VALUE!</td><td class="m">abc</td><td>转不了，原样保留</td></tr>
+            <tr><td class="m">（空白）</td><td>空</td><td class="m hl">0</td><td class="m hl">0</td><td>空白变 0，<strong>不报错</strong></td></tr>
+            <tr><td class="m">0</td><td>数字</td><td class="m">0</td><td class="m">0</td><td>不变</td></tr>
+            <tr><td class="m">-2</td><td>数字</td><td class="m">-2</td><td class="m">-2</td><td>不变</td></tr>
+            <tr><td class="m">"12.50"</td><td>文本</td><td class="m ok">12.5</td><td class="m">12.5</td><td>小数也认</td></tr>
+            <tr><td class="m">"  "（空格）</td><td>文本</td><td class="m bad">#VALUE!</td><td class="m">"  "</td><td>纯空格转不了</td></tr>
+            <tr><td class="m">"0"</td><td>文本</td><td class="m ok">0</td><td class="m">0</td><td>文本零变真零</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-cap">表 2-1 · 减负运算与容错的实际行为</p>
+      <div class="note warn">
+        <span class="nt">坑 1 · 空白会变成 0</span>
+        <p><code>--</code> 遇到真正空白的单元格返回 <code>0</code>，<strong>不报错</strong>，所以 <code>IFERROR</code> 兜不住它。如果后面又用"不等于 0"来筛，这些空白行会被顺手剔掉——多数时候是想要的效果，但要清楚这是"被当成 0"而不是"被当成空"。</p>
+      </div>
+      <div class="note warn">
+        <span class="nt">坑 2 · 空格不算空</span>
+        <p>一个只敲了空格的单元格，<code>--</code> 转不了（报 #VALUE!），<code>IFERROR</code> 会把它原样留下。它看起来是空的，但所有"非空判断"都会认为它有内容。要彻底干净，外面再套一层 <code>TRIM</code>。</p>
+      </div>
+    </section>
+
+    <!-- ===== 03 比较的类型顺序 ===== -->
+    <section id="s3">
+      <div class="sec-h">
+        <span class="sec-n">03</span>
+        <h2>比较运算的类型顺序</h2>
+        <p class="sec-sub">本节是全文最关键的一节，也是你原来那条公式报 <code>#CALC!</code> 的真正原因。</p>
+      </div>
+      <p>Excel 用 <code>&gt;</code> <code>&lt;</code> 比较大小时，不同类型之间<strong>不是按数值大小比</strong>，而是按一套固定的类型优先级：</p>
+      <div class="pipe">
+        <div class="node"><span class="pi">优先级 高</span><p class="pf">逻辑值</p><p class="pd">TRUE / FALSE</p></div>
+        <div class="node"><span class="pi">优先级 中</span><p class="pf">文本</p><p class="pd">含空文本 "" 和空格 " "</p></div>
+        <div class="node"><span class="pi">优先级 低</span><p class="pf">数字</p><p class="pd">所有数值、日期</p></div>
+      </div>
+      <p>也就是说，<strong>任何文本都比任何数字大</strong>——连同空文本 <code>""</code> 在内。于是：</p>
+      <div class="fbar"><span class="fx">fx</span><code>=100&gt;""      <span class="cm">→ FALSE   （数字 &lt; 文本，即使文本是空的）</span>
+=-2&gt;""       <span class="cm">→ FALSE   （负数也一样）</span>
+=0&gt;""        <span class="cm">→ FALSE</span>
+=100&lt;&gt;""     <span class="cm">→ TRUE    （这才是正确的"非空"判断）</span>
+="abc"&gt;""    <span class="cm">→ TRUE    （非空文本大于空文本）</span>
+=（空白）&lt;&gt;""  <span class="cm">→ FALSE   （真正空白的单元格，等于空文本）</span></code></div>
+      <div class="note warn">
+        <span class="nt">结论 · 这就是 #CALC! 的根因</span>
+        <p>用 <code>(rng &gt; "")</code> 当"非空"条件时，<strong>整列数字全部返回 FALSE</strong>，条件数组全为 0，<code>FILTER</code> 一个都没匹配上 → 直接抛 <code>#CALC!</code>。</p>
+        <p>正确的写法只有一个：<strong><code>(rng &lt;&gt; "")</code></strong>。</p>
+      </div>
+      <h3>三种"看起来像非空判断"的写法对比</h3>
+      <div class="tw">
+        <table class="tb">
+          <colgroup><col style="width:26%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:35%"></colgroup>
+          <thead><tr><th>写法</th><th>数字</th><th>非空文本</th><th>空白</th><th>适用</th></tr></thead>
+          <tbody>
+            <tr><td class="m">rng &gt; ""</td><td class="m bad">FALSE</td><td class="m ok">TRUE</td><td class="m">FALSE</td><td>只适合纯文本列，<strong>数字列必崩</strong></td></tr>
+            <tr><td class="m">rng &lt;&gt; ""</td><td class="m ok">TRUE</td><td class="m ok">TRUE</td><td class="m">FALSE</td><td>通用，<strong>推荐</strong></td></tr>
+            <tr><td class="m">ISNUMBER(rng)</td><td class="m ok">TRUE</td><td class="m">FALSE</td><td class="m">FALSE</td><td>只保留数字，剔除全部文本</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-cap">表 3-1 · 非空判断的三种写法（空白指真正没填过的单元格）</p>
+      <div class="note">
+        <span class="nt">顺带一提</span>
+        <p>这套"文本 &gt; 数字"的规则只作用于<strong>逻辑运算符</strong>（<code>&gt; &lt; = &gt;= &lt;=</code>）。<code>COUNTIF</code> / <code>SUMIF</code> 这类统计函数另有一套规则：条件与区域类型不一致时直接忽略，不参与比较。所以 <code>COUNTIF</code> 和 <code>SUMPRODUCT(--(区域&gt;值))</code> 经常会算出不一样的结果，这是正常的。</p>
+      </div>
+    </section>
+    <!-- ===== 04 FILTER ===== -->
+    <section id="s4">
+      <div class="sec-h">
+        <span class="sec-n">04</span>
+        <h2>FILTER：按条件筛选</h2>
+        <p class="sec-sub">条件数组是布尔值，它只负责"哪几行通过"。</p>
+      </div>
+      <div class="fbar"><span class="fx">fx</span><code>=FILTER(要返回的数组, 条件数组, [一个都没匹配时返回什么])</code></div>
+      <p>第三个参数 <code>if_empty</code> 是<strong>可选的，但强烈建议每次都写</strong>——原因见下面。</p>
+      <h3>条件数组怎么来</h3>
+      <p>条件数组必须和返回数组<strong>行数完全一致</strong>，元素是 TRUE / FALSE。多个条件用乘法相连（乘号等价于 AND，加号等价于 OR）：</p>
+      <div class="fbar"><span class="fx">fx</span><code>cond, (arr&lt;&gt;"") * (arr&lt;&gt;0)
+
+<span class="cm">' arr&lt;&gt;""  → 非空
+' arr&lt;&gt;0   → 不等于 0
+' 相乘     → 两个条件同时满足才通过</span></code></div>
+      <div class="note warn">
+        <span class="nt">#CALC! 的头号来源</span>
+        <p>省略第三个参数时，只要条件数组里<strong>没有任何一个 TRUE</strong>，FILTER 会返回一个空数组，Excel 立刻报 <code>#CALC!</code>。空数组不是合法的溢出结果。</p>
+        <p>加上 <code>""</code>（或任意兜底值）之后，没匹配到就安静地返回空，公式不炸。</p>
+      </div>
+      <div class="fbar"><span class="fx">fx</span><code>=FILTER(arr, cond, "")   <span class="cm">' 一个都没匹配 → 返回空，不报错</span></code></div>
+      <h3>为什么 IFERROR 兜不住 FILTER 的空数组</h3>
+      <p>因为<strong>空数组不是错误</strong>，<code>IFERROR</code> 接不住它。空数组是 FILTER 的一个合法返回值，只是下游容不下它（溢出到工作表时没有可写的行），才抛出 <code>#CALC!</code>。所以兜底必须写在 FILTER 自己的第三个参数上。</p>
+      <div class="note good">
+        <span class="nt">和传统写法的对照</span>
+        <p>老版本里要写 <code>IFERROR(INDEX(...,SMALL(IF(...))),"")</code> 并按 Ctrl+Shift+Enter 输入。FILTER 把"条件 + 提取 + 容错"三件事压成一行，而且结果是真正动态的——源数据一改，结果自动伸缩。</p>
+      </div>
+    </section>
+
+    <!-- ===== 05 SORTBY ===== -->
+    <section id="s5">
+      <div class="sec-h">
+        <span class="sec-n">05</span>
+        <h2>SORTBY：多关键字排序</h2>
+        <p class="sec-sub">注意，它和 SORT 不是一回事。</p>
+      </div>
+      <div class="fbar"><span class="fx">fx</span><code>=SORTBY(要返回的数组, 排序依据1, [升序1], 排序依据2, [升序2], …)</code></div>
+      <ul>
+        <li><code>1</code> = 升序，<code>-1</code> = 降序，省略时默认升序。</li>
+        <li>排序依据可以有<strong>很多组</strong>，<strong>靠前的优先级更高</strong>。前面一样的，才轮到后面比。</li>
+        <li>排序依据数组和返回数组<strong>行数必须一致</strong>。</li>
+      </ul>
+      <h3>SORT 和 SORTBY 的区别</h3>
+      <div class="tw">
+        <table class="tb">
+          <colgroup><col style="width:14%"><col style="width:43%"><col style="width:43%"></colgroup>
+          <thead><tr><th></th><th>SORT</th><th>SORTBY</th></tr></thead>
+          <tbody>
+            <tr><td class="m">排序对象</td><td>数组<strong>自己的某一列</strong>（用列序号指定）</td><td>数组<strong>本身不动</strong>，另拿一组数组当标尺</td></tr>
+            <tr><td class="m">多关键字</td><td>只能按数组内部的列</td><td>可以按外部任意数组，包括计算结果</td></tr>
+            <tr><td class="m">典型用途</td><td>整表按第 2 列排序</td><td>行号 / 序号跟着业务字段一起排</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-cap">表 5-1 · SORT 与 SORTBY 的分工</p>
+
+      <h3>拆解一段真实写法</h3>
+      <div class="fbar"><span class="fx">fx</span><code>=SORTBY(idx, r, 1, t, 1, idx, 1)</code></div>
+      <div class="tw">
+        <table class="tb">
+          <colgroup><col style="width:16%"><col style="width:14%"><col style="width:70%"></colgroup>
+          <thead><tr><th>位置</th><th>值</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr><td class="m">返回数组</td><td class="m">idx</td><td>最终要输出的东西，通常是行号 / 序号数组</td></tr>
+            <tr><td class="m">依据 1</td><td class="m">r, 1</td><td>第一优先级：按 r 升序</td></tr>
+            <tr><td class="m">依据 2</td><td class="m">t, 1</td><td>第二优先级：r 相同时，按 t 升序</td></tr>
+            <tr><td class="m">依据 3</td><td class="m">idx, 1</td><td>第三优先级：r、t 都相同时，按 idx 升序</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-cap">表 5-2 · 逐位置拆解</p>
+      <div class="note good">
+        <span class="nt">最后那个 idx 是干什么的</span>
+        <p>它是<strong>稳定排序的兜底</strong>。前两组依据都打平时，用原始序号再排一次，保证"值相同的行"始终维持原来的先后顺序，结果不会因为引擎实现不同而乱跳。</p>
+      </div>
+      <div class="note warn">
+        <span class="nt">坑 · 排序后行号就失效了</span>
+        <p>如果把 <code>FILTER</code> 筛出来的行号交给 <code>SORTBY</code> 排序，排完之后的<strong>行号仍然指向原表位置</strong>，而不是"新顺序的第 N 行"。后续再拿这个数组去和别的数组按位置相乘 / 比对，必须先想清楚对齐关系，否则结果会整体错位。</p>
+      </div>
+    </section>
+
+    <!-- ===== 06 DROP ===== -->
+    <section id="s6">
+      <div class="sec-h">
+        <span class="sec-n">06</span>
+        <h2>DROP：制造"错位一行"的两个数组</h2>
+        <p class="sec-sub">让数组自己和自己错开对比，是识别"连续段"的第一步。</p>
+      </div>
+      <div class="fbar"><span class="fx">fx</span><code>=DROP(数组, n)   <span class="cm">' n 为正：砍掉开头 n 行</span>
+                  <span class="cm">' n 为负：砍掉结尾 |n| 行</span></code></div>
+      <p>拿一个 6 行的数组 <code>arr = {10;10;20;20;20;30}</code> 来看：</p>
+      <div class="tw">
+        <table class="tb">
+          <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+          <thead><tr><th>表达式</th><th>结果</th></tr></thead>
+          <tbody>
+            <tr><td class="m">arr</td><td class="m">{10; 10; 20; 20; 20; 30}</td></tr>
+            <tr><td class="m">DROP(arr, 1)</td><td class="m">{10; 20; 20; 20; 30}　<span style="font-family:var(--sans);color:var(--ink2)">去掉第 1 行</span></td></tr>
+            <tr><td class="m">DROP(arr, -1)</td><td class="m">{10; 10; 20; 20; 20}　<span style="font-family:var(--sans);color:var(--ink2)">去掉最后 1 行</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-cap">表 6-1 · DROP 把同一列错开成"下一行"和"上一行"</p>
+      <p>把这两个错位数组逐行比较，就得到了<strong>每一行与它下一行是否相同</strong>：</p>
+      <div class="fbar"><span class="fx">fx</span><code>same, --(DROP(arr, 1) = DROP(arr, -1))</code></div>
+      <div class="tw">
+        <table class="tb">
+          <colgroup><col style="width:16%"><col style="width:24%"><col style="width:24%"><col style="width:36%"></colgroup>
+          <thead><tr><th>位置</th><th>DROP(arr,1)</th><th>DROP(arr,-1)</th><th>是否相等</th></tr></thead>
+          <tbody>
+            <tr><td class="m">1</td><td class="m">10</td><td class="m">10</td><td class="ok">TRUE → 1</td></tr>
+            <tr><td class="m">2</td><td class="m">20</td><td class="m">10</td><td class="bad">FALSE → 0</td></tr>
+            <tr><td class="m">3</td><td class="m">20</td><td class="m">20</td><td class="ok">TRUE → 1</td></tr>
+            <tr><td class="m">4</td><td class="m">20</td><td class="m">20</td><td class="ok">TRUE → 1</td></tr>
+            <tr><td class="m">5</td><td class="m">30</td><td class="m">20</td><td class="bad">FALSE → 0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-cap">表 6-2 · same 数组的来历</p>
+      <p>别漏了前面那两个减号——<code>=</code> 的比较结果是 TRUE / FALSE，<strong><code>--</code> 把它们变成 1 / 0</strong>，后面做加法时才不需要额外转换。得到：</p>
+      <div class="fbar"><span class="fx">fx</span><code>same = {1; 0; 1; 1; 0}   <span class="cm">' 1 = 与下一行相同，0 = 与下一行不同</span></code></div>
+      <div class="note warn">
+        <span class="nt">坑 · same 比原数组少一行</span>
+        <p>6 行数据两两对比只有 5 个结果。这个"短一行"如果不管，后面和 6 行的数组放在一起运算或拼接，尺寸不匹配直接抛错。解决办法见下一节。</p>
+      </div>
+    </section>
+
+    <!-- ===== 07 VSTACK ===== -->
+    <section id="s7">
+      <div class="sec-h">
+        <span class="sec-n">07</span>
+        <h2>VSTACK：把行数补齐</h2>
+        <p class="sec-sub">一个 <code>VSTACK(1, …)</code>，把"少一行"的数组救回来。</p>
+      </div>
+      <div class="fbar"><span class="fx">fx</span><code>=VSTACK(数组1, 数组2, …)   <span class="cm">' 按列对齐，上下摞起来</span></code></div>
+      <p>它最常见的用法不是拼接两份数据，而是<strong>在数组顶部硬塞一个值，把行数补回全长</strong>。因为第 1 行前面没有"上一行"，它必然是分组的起点：</p>
+      <div class="fbar"><span class="fx">fx</span><code>chg, VSTACK(1, 1 - same)</code></div>
+      <div class="tw">
+        <table class="tb">
+          <colgroup><col style="width:16%"><col style="width:24%"><col style="width:26%"><col style="width:34%"></colgroup>
+          <thead><tr><th>行</th><th>same</th><th>1 − same</th><th>chg（补顶后）</th></tr></thead>
+          <tbody>
+            <tr><td class="m">1</td><td class="m" style="color:#C7CDC8">—</td><td class="m" style="color:#C7CDC8">—</td><td class="m" style="background:var(--hl)">1　← 手动补的</td></tr>
+            <tr><td class="m">2</td><td class="m">1</td><td class="m">0</td><td class="m">0</td></tr>
+            <tr><td class="m">3</td><td class="m">0</td><td class="m">1</td><td class="m">1</td></tr>
+            <tr><td class="m">4</td><td class="m">1</td><td class="m">0</td><td class="m">0</td></tr>
+            <tr><td class="m">5</td><td class="m">1</td><td class="m">0</td><td class="m">0</td></tr>
+            <tr><td class="m">6</td><td class="m">0</td><td class="m">1</td><td class="m">1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-cap">表 7-1 · chg 的构造过程（same 与 1−same 已向下错开一行对齐到各自作用的行）</p>
+      <p>要理解 <code>1 - same</code>，先记住 <code>same</code> 的含义：<strong>和下一行相同就是 1</strong>。那"不一样"自然就是 <code>1 - same</code>：</p>
+      <ul>
+        <li><code>same = 1</code> → 与下一行相同，<strong>没换组</strong> → <code>1-same = 0</code></li>
+        <li><code>same = 0</code> → 与下一行不同，<strong>新组开始</strong> → <code>1-same = 1</code></li>
+      </ul>
+      <p>于是 <code>chg</code> 变成一张"<strong>断点表</strong>"：1 表示"从这里开一个新组"，0 表示"继续待在当前组"。</p>
+      <div class="fbar"><span class="fx">fx</span><code>chg = {1; 0; 1; 0; 0; 1}   <span class="cm">' 6 个元素，与 arr 长度一致</span></code></div>
+      <div class="note">
+        <span class="nt">为什么用"错位 + 取反"而不是硬判断</span>
+        <p>这个写法对数字、文本、日期一视同仁，不需要为不同数据类型写不同分支。这也是 Islands &amp; Gaps 能成为通用套路的原因。</p>
+      </div>
+    </section>
+
+    <!-- ===== 08 SCAN ===== -->
+    <section id="s8">
+      <div class="sec-h">
+        <span class="sec-n">08</span>
+        <h2>SCAN：把断点累加成编号</h2>
+        <p class="sec-sub">遇到 1 就 +1，遇到 0 就保持不变——分组编号就出来了。</p>
+      </div>
+      <div class="fbar"><span class="fx">fx</span><code>=SCAN(初始值, 数组, LAMBDA(累计值, 当前值, 计算式))</code></div>
+      <p>SCAN 遍历数组，把上一轮的结果作为"累计值"传进下一轮，并<strong>输出每一步的累计值</strong>（输出长度与输入相同）。要的累计方式是加法：</p>
+      <div class="fbar"><span class="fx">fx</span><code>group, SCAN(0, chg, LAMBDA(acc, val, acc + val))</code></div>
+      <div class="tw">
+        <table class="tb">
+          <colgroup><col style="width:10%"><col style="width:12%"><col style="width:28%"><col style="width:50%"></colgroup>
+          <thead><tr><th>行</th><th>chg</th><th>累计值 acc + val</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr><td class="m">1</td><td class="m">1</td><td class="m">0 + 1 = <strong>1</strong></td><td>第 1 行，开第 1 组</td></tr>
+            <tr><td class="m">2</td><td class="m">0</td><td class="m">1 + 0 = <strong>1</strong></td><td>没断点，留在第 1 组</td></tr>
+            <tr><td class="m">3</td><td class="m">1</td><td class="m">1 + 1 = <strong>2</strong></td><td>断点，开第 2 组</td></tr>
+            <tr><td class="m">4</td><td class="m">0</td><td class="m">2 + 0 = <strong>2</strong></td><td>留在第 2 组</td></tr>
+            <tr><td class="m">5</td><td class="m">0</td><td class="m">2 + 0 = <strong>2</strong></td><td>留在第 2 组</td></tr>
+            <tr><td class="m">6</td><td class="m">1</td><td class="m">2 + 1 = <strong>3</strong></td><td>断点，开第 3 组</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-cap">表 8-1 · SCAN 逐步累加</p>
+      <div class="fbar"><span class="fx">fx</span><code>group = {1; 1; 2; 2; 2; 3}</code></div>
+      <p>到这里编号已经生成。最后用 <code>HSTACK</code> 把它和原值并排输出即可：</p>
+      <div class="fbar"><span class="fx">fx</span><code>=HSTACK(arr, group)</code></div>
+      <div class="note good">
+        <span class="nt">LAMBDA 的写法要点</span>
+        <p><code>LAMBDA(acc, val, acc + val)</code> 里前两个是<strong>参数名</strong>（随便起，本教程用 acc / val），最后一个是<strong>用到这两个参数的计算式</strong>。这些名字只在本次 LAMBDA 内部有效，不会污染外面的 LET 变量。</p>
+      </div>
+    </section>
+    <!-- ===== 09 交互推演 ===== -->
+    <section id="s9">
+      <div class="sec-h">
+        <span class="sec-n">09</span>
+        <h2>分组推演：五步走完 Islands &amp; Gaps</h2>
+        <p class="sec-sub">点"下一步"，看同一列数据一步步变成分组编号。这就是前面所有零件拼起来的样子。</p>
+      </div>
+
+      <div class="lab" id="lab">
+        <div class="lab-top">
+          <span class="lab-title">arr = {10; 10; 20; 20; 20; 30}</span>
+          <div class="lab-ctl">
+            <button class="btn ghost" id="labReset" type="button">重置</button>
+            <button class="btn" id="labNext" type="button">下一步</button>
+          </div>
+        </div>
+
+        <div class="tw" style="margin-bottom:0">
+          <table class="agrid" id="labGrid" aria-label="Islands and Gaps 逐步推演表">
+            <colgroup>
+              <col style="width:34px"><col style="width:16%"><col style="width:21%"><col style="width:21%"><col style="width:21%"><col style="width:21%">
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="rowh"></th>
+                <th data-c="arr">arr<span class="sub">原始值</span></th>
+                <th data-c="same" class="col-off">same<span class="sub">与我下一行相同？</span></th>
+                <th data-c="ns" class="col-off">1 − same<span class="sub">与下一行不同？</span></th>
+                <th data-c="chg" class="col-off">chg<span class="sub">从这里开新组？</span></th>
+                <th data-c="group" class="col-off">group<span class="sub">分组编号</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="rowh">1</td>
+                <td data-c="arr">10</td>
+                <td data-c="same" class="col-off true">1</td>
+                <td data-c="ns" class="col-off false">0</td>
+                <td data-c="chg" class="col-off true">1</td>
+                <td data-c="group" class="col-off t1">1</td>
+              </tr>
+              <tr>
+                <td class="rowh">2</td>
+                <td data-c="arr">10</td>
+                <td data-c="same" class="col-off false">0</td>
+                <td data-c="ns" class="col-off true">1</td>
+                <td data-c="chg" class="col-off false">0</td>
+                <td data-c="group" class="col-off t1">1</td>
+              </tr>
+              <tr>
+                <td class="rowh">3</td>
+                <td data-c="arr">20</td>
+                <td data-c="same" class="col-off true">1</td>
+                <td data-c="ns" class="col-off false">0</td>
+                <td data-c="chg" class="col-off true">1</td>
+                <td data-c="group" class="col-off t2">2</td>
+              </tr>
+              <tr>
+                <td class="rowh">4</td>
+                <td data-c="arr">20</td>
+                <td data-c="same" class="col-off true">1</td>
+                <td data-c="ns" class="col-off false">0</td>
+                <td data-c="chg" class="col-off false">0</td>
+                <td data-c="group" class="col-off t2">2</td>
+              </tr>
+              <tr>
+                <td class="rowh">5</td>
+                <td data-c="arr">20</td>
+                <td data-c="same" class="col-off false">0</td>
+                <td data-c="ns" class="col-off true">1</td>
+                <td data-c="chg" class="col-off false">0</td>
+                <td data-c="group" class="col-off t2">2</td>
+              </tr>
+              <tr>
+                <td class="rowh">6</td>
+                <td data-c="arr">30</td>
+                <td data-c="same" class="col-off dash">—</td>
+                <td data-c="ns" class="col-off dash">—</td>
+                <td data-c="chg" class="col-off true">1</td>
+                <td data-c="group" class="col-off t3">3</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="progress" id="labProg"><i></i><i></i><i></i><i></i><i></i></div>
+
+        <p class="step-txt" id="labTxt">
+          <span class="stp">步骤 0 / 4</span>原始数组。6 个值，先看看它自己——接下来要用 DROP 把同一列错开成"我的下一行"和"我的上一行"两组。
+        </p>
+      </div>
+
+      <div class="note">
+        <span class="nt">same 列为什么只有 5 个值</span>
+        <p>它回答的是"第 i 行与第 i+1 行是否相同"，所以第 6 行后面没有可比的下一行，用"—"占位。<strong>真实参与运算时，这一列只有 5 个元素</strong>，这正是下一步要用 VSTACK 补行的原因。</p>
+      </div>
+
+      <h3>完整公式</h3>
+      <div class="fbar"><span class="fx">fx</span><code>=LET(
+    arr,   A2:A7,
+    same,  --(DROP(arr,1) = DROP(arr,-1)),
+    chg,   VSTACK(1, 1-same),
+    group, SCAN(0, chg, LAMBDA(acc, val, acc+val)),
+    HSTACK(arr, group)
+)</code></div>
+      <p>四个中间变量，一行一个职责：<code>arr</code> 拿数据，<code>same</code> 找相邻关系，<code>chg</code> 标断点，<code>group</code> 编组号。整条公式没有一处重复计算，改数据源只需要动 <code>A2:A7</code>。</p>
+    </section>
+
+    <!-- ===== 10 综合实战 ===== -->
+    <section id="s10">
+      <div class="sec-h">
+        <span class="sec-n">10</span>
+        <h2>综合实战：一条公式跑完流水线</h2>
+        <p class="sec-sub">转换 → 筛选 → 排序 → 分组，四个阶段压进同一个 LET。</p>
+      </div>
+      <div class="pipe">
+        <div class="node"><span class="pi">阶段 1</span><p class="pf">IFERROR(--)</p><p class="pd">文本数字转真数字，转不了的保留</p></div>
+        <div class="node"><span class="pi">阶段 2</span><p class="pf">FILTER</p><p class="pd">剔空白、剔 0，无匹配不报错</p></div>
+        <div class="node"><span class="pi">阶段 3</span><p class="pf">SORTBY</p><p class="pd">升序排列，为分组做准备</p></div>
+        <div class="node"><span class="pi">阶段 4</span><p class="pf">SCAN</p><p class="pd">连续段编号</p></div>
+      </div>
+
+      <h3>数据源（A2:A11，故意混类型）</h3>
+      <div class="pitem">
+        <span class="plab">rng　原始值</span>
+        <div class="tw"><div class="arr">
+          <span>10</span><span class="tx">"10"</span><span>20</span><span>20</span><span class="tx">"30"</span><span class="bl">（空白）</span><span>0</span><span>30</span><span>10</span><span class="tx">"20"</span>
+        </div></div>
+      </div>
+
+      <h3>阶段 1 · <span class="m">arr, IFERROR(--rng, rng)</span></h3>
+      <p>文本数字全部落地成真数字，空白变成 0，真正的 <code>0</code> 也还是 0：</p>
+      <div class="pitem">
+        <span class="plab">arr</span>
+        <div class="tw"><div class="arr">
+          <span>10</span><span>10</span><span>20</span><span>20</span><span>30</span><span class="bl">0</span><span class="bl">0</span><span>30</span><span>10</span><span>20</span>
+        </div></div>
+      </div>
+
+      <h3>阶段 2 · <span class="m">keep, (arr&lt;&gt;"") * (arr&lt;&gt;0)</span> 然后 <span class="m">r, FILTER(arr, keep, "")</span></h3>
+      <p>两个 0（一个是空白变的、一个是原本的）被剔除，10 个值剩下 8 个：</p>
+      <div class="pitem">
+        <span class="plab">keep</span>
+        <div class="tw"><div class="arr">
+          <span>1</span><span>1</span><span>1</span><span>1</span><span>1</span><span class="kill">0</span><span class="kill">0</span><span>1</span><span>1</span><span>1</span>
+        </div></div>
+      </div>
+      <div class="pitem">
+        <span class="plab">r　FILTER 结果</span>
+        <div class="tw"><div class="arr">
+          <span>10</span><span>10</span><span>20</span><span>20</span><span>30</span><span>30</span><span>10</span><span>20</span>
+        </div></div>
+      </div>
+
+      <h3>阶段 3 · <span class="m">s, SORTBY(r, r, 1)</span></h3>
+      <div class="pitem">
+        <span class="plab">s　SORTBY 结果</span>
+        <div class="tw"><div class="arr">
+          <span>10</span><span>10</span><span>10</span><span>20</span><span>20</span><span>20</span><span>30</span><span>30</span>
+        </div></div>
+      </div>
+
+      <h3>阶段 4 · 分组编号</h3>
+      <p>对排好序的数组重跑一遍 Islands &amp; Gaps：</p>
+      <div class="pitem">
+        <span class="plab">s</span>
+        <div class="tw"><div class="arr">
+          <span>10</span><span>10</span><span>10</span><span>20</span><span>20</span><span>20</span><span>30</span><span>30</span>
+        </div></div>
+      </div>
+      <div class="pitem">
+        <span class="plab">group</span>
+        <div class="tw"><div class="arr">
+          <span class="g1">1</span><span class="g1">1</span><span class="g1">1</span><span class="g2">2</span><span class="g2">2</span><span class="g2">2</span><span class="g3">3</span><span class="g3">3</span>
+        </div></div>
+      </div>
+
+      <h3>最终公式</h3>
+      <div class="fbar"><span class="fx">fx</span><code>=LET(
+    rng,   A2:A11,
+    arr,   IFERROR(--rng, rng),
+    keep,  (arr&lt;&gt;"") * (arr&lt;&gt;0),
+    r,     FILTER(arr, keep, ""),
+    s,     SORTBY(r, r, 1),
+    same,  --(DROP(s,1) = DROP(s,-1)),
+    chg,   VSTACK(1, 1-same),
+    g,     SCAN(0, chg, LAMBDA(a,v,a+v)),
+    HSTACK(s, g)
+)</code></div>
+      <div class="note good">
+        <span class="nt">结果</span>
+        <p>两列输出：左列是排好序的值，右列是它所属的连续段编号（1 / 2 / 3）。整条公式只引用了一次源区域，其余全部是变量之间的引用。</p>
+      </div>
+      <div class="note warn">
+        <span class="nt">注意 SORTBY 的第二个参数</span>
+        <p>这里 <code>SORTBY(r, r, 1)</code> 的"返回数组"和"排序依据"是同一个 <code>r</code>，所以它等价于对 r 自身升序排序。如果排序依据换成别的数组（比如按另一列的业务字段排序），返回的仍然是 <code>r</code> 的顺序，两者必须行数一致。</p>
+      </div>
+    </section>
+
+    <!-- ===== 11 报错速查 ===== -->
+    <section id="s11">
+      <div class="sec-h">
+        <span class="sec-n">11</span>
+        <h2>报错速查</h2>
+        <p class="sec-sub">看到错误码，直接对号入座。</p>
+      </div>
+      <div class="tw">
+        <table class="tb">
+          <colgroup><col style="width:15%"><col style="width:47%"><col style="width:38%"></colgroup>
+          <thead><tr><th>错误</th><th>在这个函数族里的常见原因</th><th>怎么修</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="m bad">#CALC!</td>
+              <td>FILTER 一个都没匹配、又没写第三个参数；或 HSTACK / 运算两侧数组行数不一致（典型：<code>same</code> 少一行没补）；或把空数组喂给了要求非空的函数。</td>
+              <td>补 FILTER 第三参数；给 <code>same</code> 套 <code>VSTACK</code> 补行。</td>
+            </tr>
+            <tr>
+              <td class="m bad">#VALUE!</td>
+              <td><code>--</code> 撞上了无法转成数字的文本；或 SORTBY / FILTER 的数组与依据行数不匹配。</td>
+              <td>用 <code>IFERROR(--rng, rng)</code> 包住；核对两侧行数。</td>
+            </tr>
+            <tr>
+              <td class="m bad">#SPILL!</td>
+              <td>结果要溢出的区域里，已经有别的单元格在占位。</td>
+              <td>清空结果区域，或把公式挪到一个空列。</td>
+            </tr>
+            <tr>
+              <td class="m bad">#NAME?</td>
+              <td>当前版本不认识 LET / FILTER / SCAN 这些函数。</td>
+              <td>换 Excel 365 / WPS 新版；老版本改用传统数组公式。</td>
+            </tr>
+            <tr>
+              <td class="m bad">#N/A</td>
+              <td>这个函数族本身很少产生 #N/A，多半是上游的查找函数（VLOOKUP / XLOOKUP / MATCH）漏出来的。</td>
+              <td>顺着依赖往上游查，不要在这里改。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-cap">表 11-1 · 错误码与对应处置</p>
+    </section>
+
+    <!-- ===== 12 勘误 ===== -->
+    <section id="s12">
+      <div class="sec-h">
+        <span class="sec-n">12</span>
+        <h2>勘误：两处需要更正的结论</h2>
+        <p class="sec-sub">本教程的实测结果推翻了此前口述的两个判断，写在这里免得后面照着错版本改代码。</p>
+      </div>
+      <div class="tw">
+        <table class="tb">
+          <colgroup><col style="width:34%"><col style="width:30%"><col style="width:36%"></colgroup>
+          <thead><tr><th>此前的说法</th><th>实测结果</th><th>正确写法</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>(rng &gt; "")</code> 可以用来判断非空</td>
+              <td class="bad">对数字列<strong>恒为 FALSE</strong>，条件数组全 0，FILTER 无匹配 → #CALC!</td>
+              <td><code>(rng &lt;&gt; "")</code></td>
+            </tr>
+            <tr>
+              <td><code>(rng &lt;&gt; 0)</code> 遇到纯文本会报 <code>#VALUE!</code></td>
+              <td>不会报错。文本与数字比较永远"不相等"，结果直接是 <strong>TRUE</strong>，被保留下来。</td>
+              <td>不需要为它做特殊处理；想剔除文本改用 <code>ISNUMBER(rng)</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-cap">表 12-1 · 需要替换的说法</p>
+      <div class="note warn">
+        <span class="nt">连带影响</span>
+        <p>此前给出的"修复版" <code>cond, (arr &gt; "") * (arr &lt;&gt; 0)</code> <strong>依然是错的</strong>——它同样会返回空结果。把第一个条件换成 <code>(arr &lt;&gt; "")</code> 才真正解决问题。</p>
+      </div>
+      <div class="fbar"><span class="fx">fx</span><code><span class="cm">' 错误的写法（#CALC!）</span>
+cond, (arr &gt; "") * (arr &lt;&gt; 0)
+
+<span class="cm">' 正确的写法</span>
+cond, (arr &lt;&gt; "") * (arr &lt;&gt; 0)</code></div>
+    </section>
+
+    <footer>
+      <span>Excel 365 动态数组实战 · 从 LET 到 Islands &amp; Gaps</span>
+      <span>文中所有数值结果均为演示数据实测值</span>
+    </footer>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- 目录高亮 ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var secs  = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  function mark(id){
+    links.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(entries){
+      var best = null;
+      entries.forEach(function(e){ if (e.isIntersecting && (!best || e.intersectionRatio > best.intersectionRatio)) best = e; });
+      if (best) mark(best.target.id);
+    }, {rootMargin:'-10% 0px -70% 0px', threshold:[0,0.2,0.5,1]});
+    secs.forEach(function(s){ if (s) io.observe(s); });
+  }
+
+  /* ---------- 数组实验室 ---------- */
+  var COLS  = ['arr','same','ns','chg','group'];
+  var STEPS = [
+    '原始数组。6 个值，先看看它自己——接下来要用 DROP 把同一列错开成“我的下一行”和“我的上一行”两组。',
+    'same = --(DROP(arr,1) = DROP(arr,-1))。逐行比较“我”和“下一个我”：相同得 1，不同得 0。这一列只有 5 个值，因为第 6 行后面没有可比的下一行。',
+    '1 - same。把含义翻过来：现在 1 表示“和下一行不同”，也就是“新分组从下一行开始”。它仍然只有 5 个值。',
+    'chg = VSTACK(1, 1-same)。在最顶上塞一个 1——第 1 行必然是分组的起点——行数补齐成 6。现在 chg 是一张断点表：遇到 1 就开新组，遇到 0 就留在当前组。',
+    'group = SCAN(0, chg, LAMBDA(acc,val,acc+val))。把断点逐个累加：遇到 1 编号 +1，遇到 0 保持不变。分组编号生成完毕，把它和 arr 用 HSTACK 并排输出即可。'
+  ];
+
+  var grid   = document.getElementById('labGrid');
+  var txtEl  = document.getElementById('labTxt');
+  var progEl = document.getElementById('labProg');
+  var nextBtn= document.getElementById('labNext');
+  var resetBtn=document.getElementById('labReset');
+
+  if (!grid || !txtEl || !progEl || !nextBtn || !resetBtn) return;
+
+  var bars   = Array.prototype.slice.call(progEl.querySelectorAll('i'));
+  var heads  = Array.prototype.slice.call(grid.querySelectorAll('th[data-c]'));
+  var cells  = Array.prototype.slice.call(grid.querySelectorAll('td[data-c]'));
+  var step   = 0;
+
+  function render(){
+    var visible = COLS.slice(0, step + 1);
+    var newest  = COLS[step];
+
+    heads.forEach(function(th){
+      var c = th.getAttribute('data-c');
+      th.classList.toggle('col-off', visible.indexOf(c) === -1);
+      th.classList.toggle('on', c === newest);
+    });
+
+    cells.forEach(function(td){
+      var c = td.getAttribute('data-c');
+      td.classList.toggle('col-off', visible.indexOf(c) === -1);
+      td.classList.toggle('cur', c === newest && step > 0);
+    });
+
+    bars.forEach(function(b, i){ b.classList.toggle('done', i <= step); });
+
+    txtEl.innerHTML = '<span class="stp">步骤 ' + step + ' / 4</span>' + STEPS[step];
+    nextBtn.disabled = (step === COLS.length - 1);
+    nextBtn.textContent = (step === COLS.length - 1) ? '已完成' : '下一步';
+  }
+
+  nextBtn.addEventListener('click', function(){
+    if (step < COLS.length - 1) { step += 1; render(); }
+  });
+  resetBtn.addEventListener('click', function(){ step = 0; render(); });
+
+  render();
+})();
+</script>
+</body>
+</html>
